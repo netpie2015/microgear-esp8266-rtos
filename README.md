@@ -109,7 +109,7 @@ void ICACHE_FLASH_ATTR user_init(void) {
     microgear_setWifiSemaphore(&WifiReady);
 
     microgear_init(&mg, KEY, SECRET, ALIAS);
-    microgear_setToken(&mg, TOKEN, TOKENSECRET,"gb.netpie.io:1883");
+    microgear_setToken(&mg, TOKEN, TOKENSECRET, NULL);
  
     microgear_on(&mg, CONNECTED, onConnected);
     microgear_on(&mg, MESSAGE, onMsghandler);
