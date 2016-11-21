@@ -94,8 +94,6 @@ struct PubOpt {
     bool retained;
 };
 
-PubOpt DefaultPubOpt = {false};
-
 uint16_t strxcpy(char*, char*, uint16_t);
 
 bool isConnected(Microgear*);
@@ -108,6 +106,7 @@ void microgear_disconnect(Microgear*);
 
 bool microgear_isConnected(Microgear *);
 
+int microgear_setAlias(Microgear*, char*);
 int microgear_publish(Microgear*, char*, char*, PubOpt*);
 int microgear_chat(Microgear*, char*, char*);
 int microgear_subscribe(Microgear*, char*);

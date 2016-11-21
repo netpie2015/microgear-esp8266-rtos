@@ -1,6 +1,7 @@
 #include "Microgear.h"
 
 xSemaphoreHandle *WifiSemaphore = NULL;
+PubOpt DefaultPubOpt = {false};
 
 void microgear_init(Microgear *mg, char *key, char *secret, char *alias) {
     mg->key = key;
@@ -47,10 +48,19 @@ uint16_t strxcpy(char *dest, char *src, uint16_t max) {
     return max;
 }
 
+int microgear_setAlias(Microgear *mg, char *alias) {
+    if (alias && alias[0] != '\0') {
+        char setaliascmd[MAXALIASSIZE+12];
+        sprintf(setaliascmd,"/@setalias/%s",mg->alias);
+        return microgear_publish(mg, setaliascmd, "", NULL);
+    }
+    else return FAILURE;
+}
+
 int microgear_chat(Microgear *mg, char *alias, char *payload) {
     char chattopic[MAXALIASSIZE+11];
     sprintf(chattopic,"/gearname/%s",alias);
-    microgear_publish(mg,chattopic,payload,&DefaultPubOpt);
+    return microgear_publish(mg,chattopic,payload,&DefaultPubOpt);
 }
 
 int microgear_publish(Microgear *mg, char *topic, char *payload, PubOpt *opt) {
@@ -233,11 +243,9 @@ LOCAL void ICACHE_FLASH_ATTR mqtt_task(void *pvParameters) {
 
             if (!ret) {
                 xQueueReset(mg->publish_queue);
-
-                char setaliascmd[MAXALIASSIZE+12];
-                sprintf(setaliascmd,"/@setalias/%s",mg->alias);
-                microgear_publish(mg, setaliascmd, "", NULL);
                 PubQueueMsg msg;
+
+                microgear_setAlias(mg,mg->alias);
 
                 if (mg->cb_connected != NULL) {
                     mg->cb_connected(NULL,NULL,0);
