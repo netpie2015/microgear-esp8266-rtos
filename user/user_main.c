@@ -86,7 +86,7 @@ void onMsghandler(char *topic, uint8_t* msg, uint16_t msglen) {
 
 LOCAL void loop_task(void *pvParameters) {
     while(1) {
-        if (microgear_isconnected(&mg)) {
+        if (microgear_isConnected(&mg)) {
            os_printf("published\n");
            microgear_publish(&mg,"/test","Hello", NULL);
         }

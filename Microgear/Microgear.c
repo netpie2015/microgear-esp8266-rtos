@@ -287,7 +287,7 @@ LOCAL void ICACHE_FLASH_ATTR mqtt_task(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
-bool microgear_isconnected(Microgear *mg) {
+bool microgear_isConnected(Microgear *mg) {
     return mg->client.isconnected;
 }
 
@@ -311,12 +311,12 @@ void microgear_on(Microgear *mg, unsigned char event, void (* callback)(char*, u
                 break;
         case PRESENT : 
                 if (callback) mg->cb_present = callback;
-                if (microgear_isconnected(mg))
+                if (microgear_isConnected(mg))
                     microgear_subscribe(mg,"/&present");
                 break;
         case ABSENT : 
                 if (callback) mg->cb_absent = callback;
-                if (microgear_isconnected(mg))
+                if (microgear_isConnected(mg))
                     microgear_subscribe(mg,"/&absent");
                 break;
         case CONNECTED :

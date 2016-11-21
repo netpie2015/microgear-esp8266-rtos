@@ -106,7 +106,7 @@ void microgear_setToken(Microgear*, char* token, char* tokensecret, char *endpoi
 void microgear_connect(Microgear*, char*);
 void microgear_disconnect(Microgear*);
 
-bool microgear_isconnected(Microgear *);
+bool microgear_isConnected(Microgear *);
 
 int microgear_publish(Microgear*, char*, char*, PubOpt*);
 int microgear_chat(Microgear*, char*, char*);
