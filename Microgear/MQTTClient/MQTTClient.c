@@ -217,7 +217,6 @@ int ICACHE_FLASH_ATTR cycle(MQTTClient* c, Timer* timer)
     // read the socket, see what work is due
     unsigned short packet_type = readPacket(c, timer);
 
-//--- มาไม่ถึงนี่    
     int len = 0,
         rc = SUCCESS;
 

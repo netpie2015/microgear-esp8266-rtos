@@ -47,6 +47,12 @@ uint16_t strxcpy(char *dest, char *src, uint16_t max) {
     return max;
 }
 
+int microgear_chat(Microgear *mg, char *alias, char *payload) {
+    char chattopic[MAXALIASSIZE+11];
+    sprintf(chattopic,"/gearname/%s",alias);
+    microgear_publish(mg,chattopic,payload,&DefaultPubOpt);
+}
+
 int microgear_publish(Microgear *mg, char *topic, char *payload, PubOpt *opt) {
     PubQueueMsg data;
 
@@ -134,10 +140,7 @@ LOCAL void ICACHE_FLASH_ATTR defaultMsgHandler(MessageData* md, void *c) {
             }
         }
         else if (strcmp(topic+firstcharpos,"&resetendpoint") == 0) {
-            #ifdef _DEBUG_
-                //Serial.println("to reset endpoint");
-            #endif
-            //if (mg) mg->resetEndpoint();
+            /* not yet implemented in this version */
         }
     }
     else {
