@@ -72,7 +72,7 @@ int microgear_publish(Microgear *mg, char *topic, char *payload, PubOpt *opt) {
 
     strxcpy(data.payload, payload, PUBQUEUE_PAYLOADSIZE);
     if (opt) {
-        data.flag = opt->retained?0:1;
+        data.flag = opt->retained?1:0;
     } else {
         data.flag = 0;
     }
