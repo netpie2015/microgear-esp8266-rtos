@@ -21,7 +21,7 @@
 #include "MQTTESP8266.h"
 
 #define MAX_PACKET_ID 65535
-#define MAX_MESSAGE_HANDLERS 5
+#define MAX_MESSAGE_HANDLERS 8
 #define MAX_FAIL_ALLOWED  2
 
 enum QoS { QOS0, QOS1, QOS2 };

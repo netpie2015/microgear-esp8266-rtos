@@ -155,6 +155,9 @@ int ICACHE_FLASH_ATTR deliverMessage(MQTTClient* c, MQTTString* topicName, MQTTM
                 NewMessageData(&md, topicName, message);
                 c->messageHandlers[i].fp(&md,c);
                 rc = SUCCESS;
+
+                // Added by chavee - I want a message delivered only once  
+                break;
             }
         }
     }
