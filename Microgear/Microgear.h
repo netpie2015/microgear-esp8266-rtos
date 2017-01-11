@@ -25,9 +25,9 @@
 #define SUCCESS                     0
 
 
-#define PUBQUEUE_TOPICSIZE         48
-#define PUBQUEUE_PAYLOADSIZE       256
-#define PUBQUEUE_LENGTH             3
+#define PUBSUBQUEUE_TOPICSIZE         48
+#define PUBSUBQUEUE_PAYLOADSIZE       256
+#define PUBSUBQUEUE_LENGTH             3
 
 #define APPIDSIZE                  32
 #define KEYSIZE                    16
@@ -54,10 +54,15 @@
 #define ERROR                      6
 #define INFO                       7
 
+#define PSQ_PUBLISH                1
+#define PSQ_SUBSCRIBE              2
+#define PSQ_UNSUBSCRIBE            3
+#define PSQ_DISCONNECT             4
+
 #define CTRL_DISCONNECT            "$x01"
 
 typedef struct Microgear Microgear;
-typedef struct PubQueueMsg PubQueueMsg;
+typedef struct PubSubQueueMsg PubSubQueueMsg;
 typedef struct PubOpt PubOpt;
 
 struct Microgear {
@@ -81,12 +86,13 @@ struct Microgear {
     void (* cb_info)(char*, uint8_t*, uint16_t);
 
     xTaskHandle mqtttask;
-    xQueueHandle publish_queue;
+    xQueueHandle ps_queue;
 };
 
-struct PubQueueMsg {
-    char topic[PUBQUEUE_TOPICSIZE+1];
-    char payload[PUBQUEUE_PAYLOADSIZE+1];
+struct PubSubQueueMsg {
+    uint8_t type;
+    char topic[PUBSUBQUEUE_TOPICSIZE+1];
+    char payload[PUBSUBQUEUE_PAYLOADSIZE+1];
     uint8_t flag;
 };
 

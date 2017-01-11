@@ -15,7 +15,7 @@ void microgear_init(Microgear *mg, char *key, char *secret, char *alias) {
     mg->cb_info = NULL;
     mg->mqtttask = NULL;
     mg->network = NULL;
-    mg->publish_queue = xQueueCreate(PUBQUEUE_LENGTH, sizeof(PubQueueMsg));
+    mg->ps_queue = xQueueCreate(PUBSUBQUEUE_LENGTH, sizeof(PubSubQueueMsg));
 }
 
 void microgear_setWifiSemaphore(xSemaphoreHandle *WifiReady) {
@@ -64,22 +64,23 @@ int microgear_chat(Microgear *mg, char *alias, char *payload) {
 }
 
 int microgear_publish(Microgear *mg, char *topic, char *payload, PubOpt *opt) {
-    PubQueueMsg data;
+    PubSubQueueMsg data;
 
+    data.type= PSQ_PUBLISH;
     data.topic[0] = '/';
-    strxcpy(data.topic+1, mg->appid, PUBQUEUE_TOPICSIZE-1);
-    strxcpy(data.topic+strlen(mg->appid)+1, topic, PUBQUEUE_TOPICSIZE-strlen(mg->appid)-1);
+    strxcpy(data.topic+1, mg->appid, PUBSUBQUEUE_TOPICSIZE-1);
+    strxcpy(data.topic+strlen(mg->appid)+1, topic, PUBSUBQUEUE_TOPICSIZE-strlen(mg->appid)-1);
 
-    strxcpy(data.payload, payload, PUBQUEUE_PAYLOADSIZE);
+    strxcpy(data.payload, payload, PUBSUBQUEUE_PAYLOADSIZE);
     if (opt) {
         data.flag = opt->retained?1:0;
     } else {
         data.flag = 0;
     }
 
-    if (xQueueSend(mg->publish_queue, (void *)(&data), 0) == pdFALSE) {
+    if (xQueueSend(mg->ps_queue, (void *)(&data), 0) == pdFALSE) {
         #ifdef _DEBUG_
-            os_printf("Publish queue overflow.\r\n");
+            os_printf("PS queue overflow.\r\n");
         #endif
         return -1;
     }
@@ -108,10 +109,10 @@ LOCAL void ICACHE_FLASH_ATTR defaultMsgHandler(MessageData* md, void *c) {
 
     Microgear *mg = (Microgear *)(((MQTTClient *)c)->parent);
 
-    char topic[PUBQUEUE_TOPICSIZE+1];
+    char topic[PUBSUBQUEUE_TOPICSIZE+1];
     char firstcharpos = 0;
 
-    strxcpy(topic,(char *)md->topic->lenstring.data,(PUBQUEUE_TOPICSIZE < md->topic->lenstring.len)?PUBQUEUE_TOPICSIZE:md->topic->lenstring.len);
+    strxcpy(topic,(char *)md->topic->lenstring.data,(PUBSUBQUEUE_TOPICSIZE < md->topic->lenstring.len)?PUBSUBQUEUE_TOPICSIZE:md->topic->lenstring.len);
     
     // scan for the first position after appid prefix
     for (i = 1; i < md->topic->lenstring.len; ++i) {
@@ -161,15 +162,47 @@ LOCAL void ICACHE_FLASH_ATTR defaultMsgHandler(MessageData* md, void *c) {
 }
 
 int microgear_subscribe(Microgear *mg, char *topic) {
-    char topicbuff[PUBQUEUE_TOPICSIZE+APPIDSIZE+2];
-    sprintf(topicbuff,"/%s%s",mg->appid,topic);
-    return MQTTSubscribe(&(mg->client), topicbuff, QOS0, defaultMsgHandler);
+    PubSubQueueMsg data;
+
+    data.type= PSQ_SUBSCRIBE;
+    data.topic[0] = '/';
+    strxcpy(data.topic+1, mg->appid, PUBSUBQUEUE_TOPICSIZE-1);
+    strxcpy(data.topic+strlen(mg->appid)+1, topic, PUBSUBQUEUE_TOPICSIZE-strlen(mg->appid)-1);
+
+    if (xQueueSend(mg->ps_queue, (void *)(&data), 0) == pdFALSE) {
+        #ifdef _DEBUG_
+            os_printf("PS queue overflow.\r\n");
+        #endif
+        return -1;
+    }
+    else {
+        #ifdef _DEBUG_
+            os_printf("Subscribe Success.\r\n");
+        #endif
+        return 0;
+    }
 }
 
 int microgear_unsubscribe(Microgear *mg, char *topic) {
-    char topicbuff[PUBQUEUE_TOPICSIZE+APPIDSIZE+2];
-    sprintf(topicbuff,"/%s%s",mg->appid,topic);
-    return MQTTUnsubscribe(&(mg->client), topicbuff);
+    PubSubQueueMsg data;
+
+    data.type= PSQ_UNSUBSCRIBE;
+    data.topic[0] = '/';
+    strxcpy(data.topic+1, mg->appid, PUBSUBQUEUE_TOPICSIZE-1);
+    strxcpy(data.topic+strlen(mg->appid)+1, topic, PUBSUBQUEUE_TOPICSIZE-strlen(mg->appid)-1);
+
+    if (xQueueSend(mg->ps_queue, (void *)(&data), 0) == pdFALSE) {
+        #ifdef _DEBUG_
+            os_printf("PS queue overflow.\r\n");
+        #endif
+        return -1;
+    }
+    else {
+        #ifdef _DEBUG_
+            os_printf("Subscribe Success.\r\n");
+        #endif
+        return 0;
+    }
 }
 
 LOCAL void ICACHE_FLASH_ATTR mqtt_task(void *pvParameters) {
@@ -177,10 +210,13 @@ LOCAL void ICACHE_FLASH_ATTR mqtt_task(void *pvParameters) {
     Microgear *mg = (Microgear *)pvParameters;
 
     int ret;
+    bool stopReadQueue;
     struct Network network;
     mg->client = (MQTTClient)DefaultClient;
+
+    MQTTMessage message;
  
-    char topicbuff[PUBQUEUE_TOPICSIZE+1];
+    char topicbuff[PUBSUBQUEUE_TOPICSIZE+1];
     char mqtt_username[MQTT_USERNAME_SIZE+1];
     char raw_password[20];
     char mqtt_password[MQTT_PASSWORD_SIZE+1];
@@ -195,7 +231,6 @@ LOCAL void ICACHE_FLASH_ATTR mqtt_task(void *pvParameters) {
 
     while (activeTask) {
         // Wait until wifi is up
-
         while (!WifiSemaphore) {
             vTaskDelay(500 / portTICK_RATE_MS);
         }
@@ -242,8 +277,8 @@ LOCAL void ICACHE_FLASH_ATTR mqtt_task(void *pvParameters) {
             ret = MQTTConnect(&(mg->client), &data);
 
             if (!ret) {
-                xQueueReset(mg->publish_queue);
-                PubQueueMsg msg;
+                xQueueReset(mg->ps_queue);
+                PubSubQueueMsg msg;
 
                 microgear_setAlias(mg,mg->alias);
 
@@ -252,21 +287,31 @@ LOCAL void ICACHE_FLASH_ATTR mqtt_task(void *pvParameters) {
                 }
 
                 while (activeTask) {
-                    // Publish all pending messages
-                    while (xQueueReceive(mg->publish_queue, (void *)&msg, 0) == pdTRUE) {
-                        if (strcmp(msg.topic,CTRL_DISCONNECT)==0) {
-                            activeTask = false;
-                            break;
+                    stopReadQueue = false;
+                    while (!stopReadQueue && xQueueReceive(mg->ps_queue, (void *)&msg, 0) == pdTRUE) {
+                        switch (msg.type) {
+                            case PSQ_PUBLISH     :
+                                    message.payload = msg.payload;
+                                    message.payloadlen = strlen(msg.payload);
+                                    message.dup = 0;
+                                    message.qos = QOS0;
+                                    message.retained = msg.flag;
+                                    ret = MQTTPublish(&(mg->client), msg.topic, &message);
+                                    if (ret != SUCCESS) stopReadQueue = true;
+                                    break;
+                            case PSQ_SUBSCRIBE   :
+                                    ret = MQTTSubscribe(&(mg->client), msg.topic, QOS0, defaultMsgHandler);
+                                    if (ret != SUCCESS) stopReadQueue = true;
+                                    break;
+                            case PSQ_UNSUBSCRIBE :
+                                    ret = MQTTUnsubscribe(&(mg->client), msg.topic);
+                                    if (ret != SUCCESS) stopReadQueue = true;
+                                    break;
+                            case PSQ_DISCONNECT :
+                                    activeTask = false;
+                                    stopReadQueue = true;
+                                    break;
                         }
-                        MQTTMessage message;
-                        message.payload = msg.payload;
-                        message.payloadlen = strlen(msg.payload);
-                        message.dup = 0;
-                        message.qos = QOS0;
-                        message.retained = msg.flag;
-                        ret = MQTTPublish(&(mg->client), msg.topic, &message);
-                        if (ret != SUCCESS)
-                            break;
                     }
                     // Receiving / Ping
                     ret = MQTTYield(&(mg->client), 1000);
@@ -307,8 +352,9 @@ void microgear_connect(Microgear *mg, char* appid) {
 }
 
 void microgear_disconnect(Microgear *mg) {
-    PubQueueMsg data = {CTRL_DISCONNECT};
-    xQueueSend(mg->publish_queue, (void *)(&data), 0);
+    PubSubQueueMsg data;
+    data.type = PSQ_DISCONNECT;
+    xQueueSend(mg->ps_queue, (void *)(&data), 0);
     mg->mqtttask = NULL;
 }
 
