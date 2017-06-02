@@ -1,6 +1,7 @@
 #include "Microgear.h"
 
-xSemaphoreHandle *WifiSemaphore = NULL;
+extern xSemaphoreHandle wifi_semaphore;
+
 PubOpt DefaultPubOpt = {false};
 
 void microgear_init(Microgear *mg, char *key, char *secret, char *alias) {
@@ -16,10 +17,6 @@ void microgear_init(Microgear *mg, char *key, char *secret, char *alias) {
     mg->mqtttask = NULL;
     mg->network = NULL;
     mg->ps_queue = xQueueCreate(PUBSUBQUEUE_LENGTH, sizeof(PubSubQueueMsg));
-}
-
-void microgear_setWifiSemaphore(xSemaphoreHandle *WifiReady) {
-    WifiSemaphore = WifiReady; 
 }
 
 void microgear_setToken(Microgear *mg, char *token, char* tokensecret, char *endpoint) {
@@ -205,7 +202,7 @@ int microgear_unsubscribe(Microgear *mg, char *topic) {
     }
 }
 
-LOCAL void ICACHE_FLASH_ATTR mqtt_task(void *pvParameters) {
+LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
     bool activeTask = true;
     Microgear *mg = (Microgear *)pvParameters;
 
@@ -231,10 +228,10 @@ LOCAL void ICACHE_FLASH_ATTR mqtt_task(void *pvParameters) {
 
     while (activeTask) {
         // Wait until wifi is up
-        while (!WifiSemaphore) {
+        while (!wifi_semaphore) {
             vTaskDelay(500 / portTICK_RATE_MS);
         }
-        xSemaphoreTake(*WifiSemaphore, portMAX_DELAY);
+        xSemaphoreTake(wifi_semaphore, portMAX_DELAY);
 
         sprintf(mqtt_username,"%s%%%s%%%s",mg->token,mg->key,"1478851485");
         sprintf(hashkey,"%s&%s",mg->tokensecret,mg->secret);
@@ -347,7 +344,7 @@ bool microgear_isConnected(Microgear *mg) {
 void microgear_connect(Microgear *mg, char* appid) {
     if (mg->mqtttask == NULL) {
         mg->appid = appid;
-        xTaskCreate(mqtt_task, "mqtt", 1024, mg, tskIDLE_PRIORITY + 2, &mg->mqtttask);
+        xTaskCreate(microgear_task, "microgear", 1024, mg, tskIDLE_PRIORITY + 2, &mg->mqtttask);
     }
 }
 
@@ -390,3 +387,4 @@ void microgear_on(Microgear *mg, unsigned char event, void (* callback)(char*, u
                 break;
     }
 }
+
