@@ -1,4 +1,7 @@
 #include "Microgear.h"
+//#include "AuthClient.h"
+
+//xSemaphoreHandle *WifiSemaphore = NULL;
 
 extern xSemaphoreHandle wifi_semaphore;
 
@@ -232,6 +235,8 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
             vTaskDelay(500 / portTICK_RATE_MS);
         }
         xSemaphoreTake(wifi_semaphore, portMAX_DELAY);
+
+getToken(mg->appid,mg->key,mg->secret,mg->alias);
 
         sprintf(mqtt_username,"%s%%%s%%%s",mg->token,mg->key,"1478851485");
         sprintf(hashkey,"%s&%s",mg->tokensecret,mg->secret);
