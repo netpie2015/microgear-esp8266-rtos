@@ -1,10 +1,12 @@
 #include "AuthClient.h"
+#include <limits.h>
 
 extern xSemaphoreHandle wifi_semaphore;
 
-char* memmovex(char* src, char* chunk, int n) {
-    memmove(src, chunk, n);
-    return src+n;
+char* strrep(char* dest, char* src) {
+    if (src) strcpy(dest,src);
+    else *dest = 0;
+    return dest;
 }
 
 char* addattr(char *src, char* str1, char* str2) {
@@ -19,7 +21,80 @@ char* addattr(char *src, char* str1, char* str2) {
     else return src+s1;
 }
 
-int getToken(char* appid, char* key, char* secret, char* alias) {
+long headerParseLong(char* key, int plen, char* str) {
+    static long val;
+    if (strncmp(str, key, strlen(key))==0) {
+        if (plen > 0) *(str+strlen(key)+plen) = 0;
+
+        val = strtol(str+strlen(key), NULL, 10);
+        if (val==LONG_MIN || val==LONG_MIN)
+            return INT_INVALID;
+        return val;
+    }
+    else return INT_NULL;
+}
+
+int extract(char *str, char *key, char **vp) {
+    if (memcmp(str, key, strlen(key))==0) {
+        *vp = str+strlen(key);
+        return strlen(str) - strlen(key);
+    }
+    else {
+        *vp = NULL;
+        return 0;
+    }
+}
+
+int parseendpoint(char *endpoint, char **saddr, char **sport) {
+    char *a, *p;
+    *sport = NULL;
+    if (endpoint!=NULL && memcmp(endpoint,"pie://",6) == 0) {
+        *saddr = p = endpoint+6;
+        while (*p != 0) {
+            if (*p == ':') {
+                *p = 0;
+                *sport = p+1;
+                break;
+            }
+            p++;
+        }
+        return 1;
+    }
+    else {
+        *saddr = NULL;
+        return 0;
+    }
+}
+
+char* urldecode(char *str) {
+    char *p, *h, d=0;
+    char c[3] = {0,0,0};
+
+    if (str == NULL) return NULL;
+    p = h = str;
+    while (*p != 0) {
+        if (*p=='%') d=2;
+        else if (d>0) {
+            c[2-d] = *p;
+            if (--d == 0) *(h++) = strtol(c, NULL, 16);
+        }
+        else *(h++) = *p;
+        p++;
+    }
+    *h = 0;
+    return str;
+}
+
+int getAccessToken(Token *token, char* appid, char* key, char* secret, char* alias) {
+    memset(token, 0, sizeof(Token));
+    if (getOAuthToken(token, appid, key, secret, alias, AUTH_REQUEST_TOKEN_URI)) {
+        os_printf("\n###############################################################\n\n");
+        return getOAuthToken(token, appid, key, secret, alias, AUTH_ACCESS_TOKEN_URI);
+    }
+}
+
+int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alias, char* uri) {
+    char *req;
 
     const struct addrinfo hints = {
         .ai_family = AF_INET,
@@ -39,7 +114,7 @@ int getToken(char* appid, char* key, char* secret, char* alias) {
         close(authclient);
     }
     else {
-        char *req, *p, *r;
+        char *p, *r;
         char rep[3];
         char hashkey[HASKKEYSIZE+1];
         char rawsig[HMACBASE64SIZE];
@@ -47,26 +122,41 @@ int getToken(char* appid, char* key, char* secret, char* alias) {
         req = (char *)malloc(HTTP_BUFFER_SIZE);
         memset(req, 0, HTTP_BUFFER_SIZE);
 
-        p = addattr(req, "POST /api/rtoken HTTP 1.1\r\n", NULL);
+        p = addattr(req, "POST ",uri);
+        p = addattr(p, " HTTP 1.1\r\n", NULL);
         p = addattr(p, "Authorization: OAuth oauth_callback=\"scope%3D%26appid%3D", appid);
         p = addattr(p, "%26mgrev%3D", MGREV);
         p = addattr(p, "%26verifier%3D", alias);
         p = addattr(p, "\",oauth_consumer_key=\"", key);
         p = addattr(p, "\",oauth_nonce=\"", "sdjkjdf8");
         p = addattr(p, "\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"","1496310066");
+        if (*token->token) {    // if already have a request token
+            p = addattr(p, "\",oauth_token=\"", token->token);
+            p = addattr(p, "\",oauth_verifier=\"", alias);
+        }
         p = addattr(p, "\",oauth_version=\"1.0\"",NULL);
 
         if (write(authclient, req, strlen(req)) < 0) {
             printf("... socket send failed\r\n");
             close(authclient);
             free(req);
-            return;
+            return 0;
         }
 
         memmove(req+(34+STRLEN(AUTH_ADDRESS)), req+42, HTTP_BUFFER_SIZE-(42+STRLEN(AUTH_ADDRESS)));
         p = addattr(req , "POST&http%3A%2F%2F", NULL);
-        p = addattr(p, AUTH_ADDRESS, NULL);
-        p = addattr(p, "%3A8080%2Fapi%2Frtoken&", NULL);
+        p = addattr(p, AUTH_ADDRESS, "%3A");
+        p = addattr(p, AUTH_PORT,NULL);
+        r = uri;
+        for (r=uri; *r!=0; r++) {
+            switch(*r) {
+                case '/' :  memcpy(p,"%2F",3);
+                            p=p+3;
+                            break;
+                default  :  *p++ = *r;
+            }
+        }
+        *p++='&';
 
         r = p;
         while (*p != 0) {
@@ -86,13 +176,15 @@ int getToken(char* appid, char* key, char* secret, char* alias) {
             }
         }
 
-        #ifdef _DEBUG_
-            os_printf("Signature base string:\n%s\n",req);
-        #endif
-
         memset(hashkey, 0, 50);
         memcpy(hashkey, secret, SECRETSIZE);
         strcat(hashkey,"&");
+        strcat(hashkey,token->secret);
+
+        #ifdef _DEBUG_
+            os_printf("Hash key:\n%s\n",hashkey);
+            os_printf("Signature base string:\n%s\n",req);
+        #endif
 
         hmac_sha1 (hashkey, strlen(hashkey), req, strlen(req), rawsig);
 
@@ -140,16 +232,100 @@ int getToken(char* appid, char* key, char* secret, char* alias) {
             printf("... socket send failed\r\n");
             close(authclient);
             free(req);
-            return;
+            return 0;
         }
-        free(req);
     }
-    
-    static char recv_buf[128];
-    int r;
 
-    while ((r = read(authclient , recv_buf, 127)) > 0) {
-        recv_buf[r] = 0;
-        os_printf("ESP8266 TCP client task > recv data %d bytes!\nESP8266 TCP client task > %s\n", r, recv_buf);
-    } 
+    int r;
+    char *h, *p, *t;
+    char header = 1;
+    long clen = -1;
+    long httpstatus = -1;
+    char *oauth_token = NULL;
+    char *oauth_token_secret = NULL;
+    char *flag = NULL;
+    char *endpoint = NULL;
+    char *saddr = NULL;
+    char *sport = NULL;
+
+    // read http reply and parse some headers
+    t = req;
+    while ((r = read(authclient , t, READ_CHUNK_SIZE)) > 0) {
+        h = p = req;
+        t += r;
+        *t = 0;
+        if (header) {
+            while (*p != 0) {
+                if (*p != '\r') p++;
+                else {
+                    p++;
+                    if (*p == '\n')  {          // if \r\n found
+                        *(p-1) = *p = 0;
+                        #ifdef _DEBUG_
+                            if (*h != 0) os_printf("Header: %s\n",h);
+                        #endif
+                        if (httpstatus==-1) {
+                            httpstatus = headerParseLong("HTTP/1.1 ",3, h);
+                        }
+                        if (clen==-1 || clen==INT_NULL || clen==INT_INVALID) {
+                            clen = headerParseLong("Content-Length: ",0, h);
+                        }
+                        if (*h == 0) header =0; // if \r\n\r\n found, then header ends
+                        h = ++p;
+                    }
+                }
+            }
+            memmove(req, h, t-h+1);             // shift the current chunk (ended with \0) to the front
+            t = req+(t-h);
+        }
+    }
+
+    if (clen >= 0) *(req+clen)=0;
+    #ifdef _DEBUG_
+        os_printf("\n");
+        os_printf("Attribute: http status = %d\n",httpstatus);
+        os_printf("Attribute: clen = %d\n",clen);
+        os_printf("Body: %s\n",req);
+    #endif
+
+    t = h = p = req;
+    while (*h != 0) {
+        if (*p != '&' && *p) p++;
+        else {
+            if (*p==0) t=NULL;  // if the end of the body
+            *p = 0;
+            if (!oauth_token) extract(h,"oauth_token=", &oauth_token);
+            if (!oauth_token_secret) extract(h,"oauth_token_secret=", &oauth_token_secret);
+            if (!flag) extract(h,"flag=", &flag);
+            if (!endpoint) {
+                extract(h,"endpoint=", &endpoint);
+            }
+            h = t?++p:p;
+        }
+    }
+
+    strrep(token->token, oauth_token);
+    strrep(token->secret, oauth_token_secret);
+    if (endpoint) {
+        urldecode(endpoint);
+        parseendpoint(endpoint, &saddr, &sport);
+        strrep(token->saddr, saddr);
+        token->sport = strtol(sport, NULL, 10);
+    }
+    else {
+        *(token->saddr) = 0;
+        token->sport = 0;
+    }
+    token->flag = flag?*flag:0;
+
+    #ifdef _DEBUG_
+        os_printf("oauth_token == %s\n",token->token);
+        os_printf("oauth_token_secret == %s\n",token->secret);
+        os_printf("flag == %s\n",flag);
+        os_printf("saddr = %s\n",saddr);
+        os_printf("sport = %s\n",sport);
+    #endif
+
+    free(req);
+    return 1;
 }

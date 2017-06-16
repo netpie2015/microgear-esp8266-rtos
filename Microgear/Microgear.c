@@ -1,15 +1,14 @@
 #include "Microgear.h"
-//#include "AuthClient.h"
-
-//xSemaphoreHandle *WifiSemaphore = NULL;
+#include "AuthClient.h"
 
 extern xSemaphoreHandle wifi_semaphore;
-
 PubOpt DefaultPubOpt = {false};
 
 void microgear_init(Microgear *mg, char *key, char *secret, char *alias) {
     mg->key = key;
     mg->secret = secret;
+    mg->token = NULL;
+    mg->tokensecret = NULL;
     mg->alias = alias;
     mg->cb_connected = NULL;
     mg->cb_absent = NULL;
@@ -207,6 +206,7 @@ int microgear_unsubscribe(Microgear *mg, char *topic) {
 
 LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
     bool activeTask = true;
+    Token token;
     Microgear *mg = (Microgear *)pvParameters;
 
     int ret;
@@ -236,7 +236,17 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
         }
         xSemaphoreTake(wifi_semaphore, portMAX_DELAY);
 
-getToken(mg->appid,mg->key,mg->secret,mg->alias);
+        if (mg->token == NULL) {
+                os_printf(",.,.,.,.,.,.,.,.,\n\n");
+
+                os_printf("appid=%s, key=%s, secret=%s, alias=%s\n\n",mg->appid, mg->key, mg->secret, mg->alias);
+
+                getAccessToken(&token, mg->appid, mg->key, mg->secret, mg->alias);
+                mg->token = token.token;
+                mg->tokensecret = token.secret;
+                mg->host = token.saddr;
+                mg->port = token.sport;
+        }
 
         sprintf(mqtt_username,"%s%%%s%%%s",mg->token,mg->key,"1478851485");
         sprintf(hashkey,"%s&%s",mg->tokensecret,mg->secret);
@@ -392,4 +402,3 @@ void microgear_on(Microgear *mg, unsigned char event, void (* callback)(char*, u
                 break;
     }
 }
-

@@ -1,6 +1,8 @@
 #ifndef MICROGEAR_H
 #define MICROGEAR_H
 
+//#define _DEBUG_
+
 #include "esp_common.h"
 #include "espressif/espconn.h"
 
@@ -12,7 +14,8 @@
 #include "MQTTClient/MQTTESP8266.h"
 #include "MQTTClient/MQTTClient.h"
 #include "base64.h"
-//#define _DEBUG_
+#include "TokenStore.h"
+
 
 #define GBDEFAULTHOST             "gb.netpie.io"
 #define GBPORT                    1883
@@ -25,9 +28,9 @@
 #define SUCCESS                     0
 
 
-#define PUBSUBQUEUE_TOPICSIZE         48
-#define PUBSUBQUEUE_PAYLOADSIZE       256
-#define PUBSUBQUEUE_LENGTH             3
+#define PUBSUBQUEUE_TOPICSIZE      48
+#define PUBSUBQUEUE_PAYLOADSIZE    256
+#define PUBSUBQUEUE_LENGTH          3
 
 #define APPIDSIZE                  32
 #define KEYSIZE                    16
