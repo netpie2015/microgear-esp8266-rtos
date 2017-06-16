@@ -10,9 +10,11 @@
 #define SECRET        <SECRET>
 #define ALIAS         <ALIAS>
 
+/*
+// enable this to manually assign token
 #define TOKEN         <TOKEN>
 #define TOKENSECRET   <TOKENSECRET>
-
+*/
 Microgear mg;
 
 struct station_config wificonfig = {
@@ -57,7 +59,10 @@ void ICACHE_FLASH_ATTR user_init(void) {
     startWifi(&wificonfig);
 
     microgear_init(&mg, KEY, SECRET, ALIAS);
-    microgear_setToken(&mg, TOKEN, TOKENSECRET, NULL);
+
+    #if defined(TOKEN) || defined(TOKENSECRET)
+        microgear_setToken(&mg, TOKEN, TOKENSECRET, NULL);
+    #endif
     microgear_on(&mg, CONNECTED, onConnected);
     microgear_on(&mg, MESSAGE, onMsghandler);
 
