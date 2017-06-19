@@ -14,7 +14,7 @@
 #include "MQTTClient/MQTTESP8266.h"
 #include "MQTTClient/MQTTClient.h"
 #include "base64.h"
-#include "TokenStore.h"
+//#include "TokenStore.h"
 
 
 #define GBDEFAULTHOST             "gb.netpie.io"

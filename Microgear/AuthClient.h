@@ -9,6 +9,8 @@
 #include "lwip/netdb.h"
 #include "lwip/dns.h"
 
+#include "ESPTime.h"
+
 #define _DEBUG_
 
 #define REQUESTTOKEN					1
@@ -56,6 +58,7 @@ struct {
 
 #define STRLEN(s) (sizeof(s)/sizeof(s[0]))
 
+uint32_t getServerTime();
 int getOAuthToken(Token*,char*,char*,char*,char*,char*);
 int getAccessToken(Token*,char*,char*,char*,char*);
 

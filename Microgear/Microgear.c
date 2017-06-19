@@ -237,15 +237,15 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
         xSemaphoreTake(wifi_semaphore, portMAX_DELAY);
 
         if (mg->token == NULL) {
-                os_printf(",.,.,.,.,.,.,.,.,\n\n");
-
-                os_printf("appid=%s, key=%s, secret=%s, alias=%s\n\n",mg->appid, mg->key, mg->secret, mg->alias);
-
-                getAccessToken(&token, mg->appid, mg->key, mg->secret, mg->alias);
-                mg->token = token.token;
-                mg->tokensecret = token.secret;
-                mg->host = token.saddr;
-                mg->port = token.sport;
+                if (getAccessToken(&token, mg->appid, mg->key, mg->secret, mg->alias)) {
+                    mg->token = token.token;
+                    mg->tokensecret = token.secret;
+                    mg->host = token.saddr;
+                    mg->port = token.sport;
+                }
+                else {
+                    break;
+                }
         }
 
         sprintf(mqtt_username,"%s%%%s%%%s",mg->token,mg->key,"1478851485");

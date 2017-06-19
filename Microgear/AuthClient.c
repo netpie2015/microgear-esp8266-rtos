@@ -86,34 +86,101 @@ char* urldecode(char *str) {
 }
 
 int getAccessToken(Token *token, char* appid, char* key, char* secret, char* alias) {
+    uint32_t time;
+
+    time = getServerTime();
+    #ifdef _DEBUG_
+        os_printf("Server Time == %d\n", time);
+    #endif
     memset(token, 0, sizeof(Token));
     if (getOAuthToken(token, appid, key, secret, alias, AUTH_REQUEST_TOKEN_URI)) {
-        os_printf("\n###############################################################\n\n");
         return getOAuthToken(token, appid, key, secret, alias, AUTH_ACCESS_TOKEN_URI);
     }
 }
 
-int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alias, char* uri) {
-    char *req;
-
+int connectAuthServer() {
     const struct addrinfo hints = {
         .ai_family = AF_INET,
         .ai_socktype = SOCK_STREAM,
     };
-
     struct addrinfo *res;
     int err = getaddrinfo(AUTH_ADDRESS, AUTH_PORT, &hints, &res);
     struct in_addr *addr = &((struct sockaddr_in *)res->ai_addr)->sin_addr;
-    int authclient = socket(res->ai_family, res->ai_socktype, 0);
-    #ifdef _DEBUG_
-        os_printf("DNS resolved IP=%s\r\n", inet_ntoa(*addr));
-    #endif
+    int client = socket(res->ai_family, res->ai_socktype, 0);
+    if(connect(client, res->ai_addr, res->ai_addrlen) == 0) return client;
+    else return -1;
+}
 
-    if(connect(authclient, res->ai_addr, res->ai_addrlen) != 0) {
-        os_printf("close 3\n");    
-        close(authclient);
+// read http client socket, set req as a body, return http status
+int getHTTPResponse(int client, char *req) {
+    int r, clen = -1;
+    int httpstatus = -1;
+    char *h, *p, *t;
+    char header = 1;
+
+    t = req;
+    while ((r = read(client , t, READ_CHUNK_SIZE)) > 0) {
+        h = p = req;
+        t += r;
+        *t = 0;
+        if (header) {
+            while (*p != 0) {
+                if (*p != '\r') p++;
+                else {
+                    p++;
+                    if (*p == '\n')  {          // if \r\n found
+                        *(p-1) = *p = 0;
+                        #ifdef _DEBUG_
+                            if (*h != 0) os_printf("Header: %s\n",h);
+                        #endif
+                        if (httpstatus==-1) {
+                            httpstatus = headerParseLong("HTTP/1.1 ",3, h);
+                        }
+                        if (clen==-1 || clen==INT_NULL || clen==INT_INVALID) {
+                            clen = headerParseLong("Content-Length: ",0, h);
+                        }
+                        if (*h == 0) header =0; // if \r\n\r\n found, then header ends
+                        h = ++p;
+                    }
+                }
+            }
+            memmove(req, h, t-h+1);             // shift the current chunk (ended with \0) to the front
+            t = req+(t-h);
+        }
     }
-    else {
+    if (clen >= 0) *(req+clen)=0;
+    return httpstatus;
+}
+
+uint32_t getServerTime() {
+    #define REQUESTCMD "GET /api/time HTTP/1.1\r\nConnection: close\r\n\r\n"
+    char* req;
+    int tmclient;
+    uint32_t time = 0;
+
+    if ((tmclient = connectAuthServer()) >= 0) {
+        req = (char *)malloc(HTTP_BUFFER_SIZE);
+        memset(req, 0, HTTP_BUFFER_SIZE);
+
+        if (write(tmclient, REQUESTCMD, STRLEN(REQUESTCMD)) < 0) {
+            close(tmclient);
+            return 0;
+        }
+        memset(req, 0, strlen(req));
+        if (getHTTPResponse(tmclient, req) == 200) {
+            time = headerParseLong("",0,req);
+        }
+        free(req);
+    }
+    close(tmclient);
+    return time;
+}
+
+int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alias, char* uri) {
+    int authclient;
+    char *req;
+
+    if ((authclient = connectAuthServer()) >= 0) {
         char *p, *r;
         char rep[3];
         char hashkey[HASKKEYSIZE+1];
@@ -142,7 +209,6 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
             free(req);
             return 0;
         }
-
         memmove(req+(34+STRLEN(AUTH_ADDRESS)), req+42, HTTP_BUFFER_SIZE-(42+STRLEN(AUTH_ADDRESS)));
         p = addattr(req , "POST&http%3A%2F%2F", NULL);
         p = addattr(p, AUTH_ADDRESS, "%3A");
@@ -187,7 +253,6 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         #endif
 
         hmac_sha1 (hashkey, strlen(hashkey), req, strlen(req), rawsig);
-
         memset(req, 0, HTTP_BUFFER_SIZE);
         memcpy(req, ",oauth_signature=\"",18);
         base64Encode(req+18, rawsig, 20);
@@ -222,12 +287,10 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         #endif
 
         write(authclient, req, strlen(req));
-
         memset(req, 0, HTTP_BUFFER_SIZE);
         p = addattr(req, "Host: ", AUTH_ADDRESS);
         p = addattr(p, ":", AUTH_PORT);
         p = addattr(p, "\r\nConnection: close\r\nUser-Agent: E8R\r\n\r\n", NULL);
-
         if (write(authclient, req, strlen(req)) < 0) {
             printf("... socket send failed\r\n");
             close(authclient);
@@ -235,12 +298,12 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
             return 0;
         }
     }
+    else {
+        close(authclient);
+    }
 
-    int r;
     char *h, *p, *t;
-    char header = 1;
-    long clen = -1;
-    long httpstatus = -1;
+    int httpstatus = -1;
     char *oauth_token = NULL;
     char *oauth_token_secret = NULL;
     char *flag = NULL;
@@ -248,43 +311,11 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
     char *saddr = NULL;
     char *sport = NULL;
 
-    // read http reply and parse some headers
-    t = req;
-    while ((r = read(authclient , t, READ_CHUNK_SIZE)) > 0) {
-        h = p = req;
-        t += r;
-        *t = 0;
-        if (header) {
-            while (*p != 0) {
-                if (*p != '\r') p++;
-                else {
-                    p++;
-                    if (*p == '\n')  {          // if \r\n found
-                        *(p-1) = *p = 0;
-                        #ifdef _DEBUG_
-                            if (*h != 0) os_printf("Header: %s\n",h);
-                        #endif
-                        if (httpstatus==-1) {
-                            httpstatus = headerParseLong("HTTP/1.1 ",3, h);
-                        }
-                        if (clen==-1 || clen==INT_NULL || clen==INT_INVALID) {
-                            clen = headerParseLong("Content-Length: ",0, h);
-                        }
-                        if (*h == 0) header =0; // if \r\n\r\n found, then header ends
-                        h = ++p;
-                    }
-                }
-            }
-            memmove(req, h, t-h+1);             // shift the current chunk (ended with \0) to the front
-            t = req+(t-h);
-        }
-    }
+    httpstatus = getHTTPResponse(authclient, req);
 
-    if (clen >= 0) *(req+clen)=0;
     #ifdef _DEBUG_
         os_printf("\n");
         os_printf("Attribute: http status = %d\n",httpstatus);
-        os_printf("Attribute: clen = %d\n",clen);
         os_printf("Body: %s\n",req);
     #endif
 
@@ -327,5 +358,6 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
     #endif
 
     free(req);
+    close(authclient);
     return 1;
 }
