@@ -45,9 +45,10 @@ struct token_struct{
 	char type;
 	char token[TOKENSIZE+1];
 	char secret[TOKENSECRETSIZE+1];
-	char saddr[ENDPOINTSIZE-4];
-	uint32_t sport;
+	char saddr[ENDPOINTSIZE+1];
+	uint16_t sport;
 	char flag;
+	char dummy[1]; // make struct size devidable by 4
 };
 
 struct {

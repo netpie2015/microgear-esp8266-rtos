@@ -89,8 +89,10 @@ int getAccessToken(Token *token, char* appid, char* key, char* secret, char* ali
     uint32_t time;
 
     time = getServerTime();
+    setTime(time);
     #ifdef _DEBUG_
         os_printf("Server Time == %d\n", time);
+        os_printf("AuthClient getTime() == %d\n", getTime());
     #endif
     memset(token, 0, sizeof(Token));
     if (getOAuthToken(token, appid, key, secret, alias, AUTH_REQUEST_TOKEN_URI)) {
@@ -196,7 +198,7 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         p = addattr(p, "%26verifier%3D", alias);
         p = addattr(p, "\",oauth_consumer_key=\"", key);
         p = addattr(p, "\",oauth_nonce=\"", "sdjkjdf8");
-        p = addattr(p, "\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"","1496310066");
+        p = addattr(p, "\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"",getTimeStr());
         if (*token->token) {    // if already have a request token
             p = addattr(p, "\",oauth_token=\"", token->token);
             p = addattr(p, "\",oauth_verifier=\"", alias);
@@ -348,6 +350,9 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         token->sport = 0;
     }
     token->flag = flag?*flag:0;
+
+//    os_printf(">>>>> token->flag = %s\n",token->flag);
+    os_printf(">>>>> token->sport = %d\n",token->sport);
 
     #ifdef _DEBUG_
         os_printf("oauth_token == %s\n",token->token);

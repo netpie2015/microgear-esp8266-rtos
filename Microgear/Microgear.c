@@ -1,5 +1,4 @@
 #include "Microgear.h"
-#include "AuthClient.h"
 
 extern xSemaphoreHandle wifi_semaphore;
 PubOpt DefaultPubOpt = {false};
@@ -230,8 +229,7 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
     mg->network = &network;
 
     while (activeTask) {
-        // Wait until wifi is up
-        while (!wifi_semaphore) {
+        while (!wifi_semaphore) {    // wait for wifi
             vTaskDelay(500 / portTICK_RATE_MS);
         }
         xSemaphoreTake(wifi_semaphore, portMAX_DELAY);
@@ -248,7 +246,7 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
                 }
         }
 
-        sprintf(mqtt_username,"%s%%%s%%%s",mg->token,mg->key,"1478851485");
+        sprintf(mqtt_username,"%s%%%s%%%s",mg->token,mg->key,getTimeStr());
         sprintf(hashkey,"%s&%s",mg->tokensecret,mg->secret);
         hmac_sha1 (hashkey, strlen(hashkey), mqtt_username, strlen(mqtt_username), raw_password);
         base64Encode(mqtt_password, raw_password, 20);
