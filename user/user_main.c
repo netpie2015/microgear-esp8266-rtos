@@ -60,7 +60,7 @@ void ICACHE_FLASH_ATTR user_init(void) {
 
     microgear_init(&mg, KEY, SECRET, ALIAS);
 
-    #if defined(TOKEN) || defined(TOKENSECRET)
+    #if defined(TOKEN)
         microgear_setToken(&mg, TOKEN, TOKENSECRET, NULL);
     #endif
     microgear_on(&mg, CONNECTED, onConnected);
