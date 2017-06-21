@@ -3,6 +3,8 @@
 
 #define MGREV "E8R1a"
 
+#include "config.h"
+
 #include "lwip/err.h"
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
@@ -10,20 +12,16 @@
 #include "lwip/dns.h"
 
 #include "ESPTime.h"
-
-#define _DEBUG_
+#include "TokenStore.h"
 
 #define REQUESTTOKEN					1
 #define ACCESSTOKEN						2
 
 #define KEYSIZE                    		16
 #define SECRETSIZE                 		32
-#define TOKENSIZE                  		16
-#define TOKENSECRETSIZE            		32
 
 #define HMACBASE64SIZE					28
 #define HASKKEYSIZE				   		SECRETSIZE+TOKENSECRETSIZE+1
-#define ENDPOINTSIZE					200
 
 #define HTTP_BUFFER_SIZE     			640
 #define READ_CHUNK_SIZE                 HTTP_BUFFER_SIZE-1
@@ -39,17 +37,11 @@
 #define INT_NULL						INT_MIN
 #define INT_INVALID                     INT_MIN+1
 
-typedef struct token_struct Token;
+#define TKTYPE_REQUEST					65
+#define TKTYPE_ACCESS					66
 
-struct token_struct{
-	char type;
-	char token[TOKENSIZE+1];
-	char secret[TOKENSECRETSIZE+1];
-	char saddr[ENDPOINTSIZE+1];
-	uint16_t sport;
-	char flag;
-	char dummy[1]; // make struct size devidable by 4
-};
+#define TKFLAG_SESSION                  'S'
+#define TKFLAG_PERSIST                  'P'
 
 struct {
 	char *appid;

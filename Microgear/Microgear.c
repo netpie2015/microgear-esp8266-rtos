@@ -234,39 +234,41 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
         }
         xSemaphoreTake(wifi_semaphore, portMAX_DELAY);
 
-        if (mg->token == NULL) {
-                if (getAccessToken(&token, mg->appid, mg->key, mg->secret, mg->alias)) {
-                    mg->token = token.token;
-                    mg->tokensecret = token.secret;
-                    mg->host = token.saddr;
-                    mg->port = token.sport;
-                }
-                else {
-                    break;
-                }
+        if (mg->token  == NULL) {
+            if (!getAccessToken(&token, mg->appid, mg->key, mg->secret, mg->alias)) {
+                break;
+            }
+        }
+        else {
+            // if token has been manually assigned by api
+            strcpy(token.token, mg->token); 
+            strcpy(token.secret, mg->tokensecret);
+            strcpy(token.saddr, mg->host);
+            token.sport = mg->port;
         }
 
-        sprintf(mqtt_username,"%s%%%s%%%s",mg->token,mg->key,getTimeStr());
-        sprintf(hashkey,"%s&%s",mg->tokensecret,mg->secret);
+        setTime(getServerTime());
+        sprintf(mqtt_username,"%s%%%s%%%s",token.token,mg->key,getTimeStr());
+        sprintf(hashkey,"%s&%s",token.secret,mg->secret);
         hmac_sha1 (hashkey, strlen(hashkey), mqtt_username, strlen(mqtt_username), raw_password);
         base64Encode(mqtt_password, raw_password, 20);
 
         #ifdef _DEBUG_
             os_printf("mqtt_username = %s\n", mqtt_username);
-            os_printf("real mqtt_username = %s\n", mqtt_username+strlen(mg->token)+1);
+            os_printf("real mqtt_username = %s\n", mqtt_username+strlen(token.token)+1);
             os_printf("raw_password = %s\n", raw_password);
             os_printf("hashkey = %s\n", hashkey);
             os_printf("mqtt_password = %s\n", mqtt_password);
+            os_printf("(Re)connecting to MQTT server %s : %d... ", token.saddr, token.sport);
+        #endif
+ 
+        ret = ConnectNetwork(mg->network, token.saddr, token.sport);
+
+        #ifdef _DEBUG_
+            os_printf("Connecting network -- ret = %d\n",ret);
         #endif
 
-        dmsg_printf("(Re)connecting to MQTT server %s : %d... ", mg->host, mg->port);
-
-        ret = ConnectNetwork(mg->network, mg->host, mg->port);
-
         if (!ret) {
-            #ifdef _DEBUG_
-                os_printf("Network OK\r\n");
-            #endif
             NewMQTTClient(&(mg->client), mg->network, 5000, mqtt_buf, 100, mqtt_readbuf, 100);
 
             mg->client.defaultMessageHandler = defaultMsgHandler;
@@ -274,8 +276,8 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
 
             data.willFlag = 0;
             data.MQTTVersion = 3;
-            data.clientID.cstring = mg->token;
-            data.username.cstring = mqtt_username+strlen(mg->token)+1;
+            data.clientID.cstring = token.token;
+            data.username.cstring = mqtt_username+strlen(token.token)+1;
             data.password.cstring = mqtt_password;
             data.keepAliveInterval = 15;
             data.cleansession = 1;
@@ -286,7 +288,11 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
 
             ret = MQTTConnect(&(mg->client), &data);
 
-            if (!ret) {
+            #ifdef _DEBUG_
+                os_printf("broker connection status = %d\n",ret);
+            #endif
+
+            if (ret == BROKER_CONNECTED) {
                 xQueueReset(mg->ps_queue);
                 PubSubQueueMsg msg;
 
@@ -334,9 +340,18 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
                 #endif
             }
             else {
-                #ifdef _DEBUG_
-                    os_printf("failed.\r\n");
-                #endif
+                if (ret == BROKER_PAUSEDTOKEN) {
+                    #ifdef _DEBUG_
+                        os_printf("Token paused\n");
+                    #endif
+                }
+                else {
+                    #ifdef _DEBUG_
+                        clearToken(&token);
+                        os_printf("Connection refused - unknown token\n");
+                    #endif
+                }
+                vTaskDelay(5000 / portTICK_RATE_MS);
             }
             DisconnectNetwork(mg->network);
         }

@@ -1,0 +1,5 @@
+#define _DEBUG_
+
+#define PUBSUBQUEUE_TOPICSIZE      48
+#define PUBSUBQUEUE_PAYLOADSIZE    256
+#define PUBSUBQUEUE_LENGTH          3

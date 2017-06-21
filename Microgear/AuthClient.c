@@ -92,11 +92,33 @@ int getAccessToken(Token *token, char* appid, char* key, char* secret, char* ali
     setTime(time);
     #ifdef _DEBUG_
         os_printf("Server Time == %d\n", time);
-        os_printf("AuthClient getTime() == %d\n", getTime());
     #endif
-    memset(token, 0, sizeof(Token));
-    if (getOAuthToken(token, appid, key, secret, alias, AUTH_REQUEST_TOKEN_URI)) {
-        return getOAuthToken(token, appid, key, secret, alias, AUTH_ACCESS_TOKEN_URI);
+
+    loadToken(token);
+    switch (token->type) {
+        case TKTYPE_ACCESS :
+                return 1; 
+        case TKTYPE_REQUEST :
+                if (getOAuthToken(token, appid, key, secret, alias, AUTH_ACCESS_TOKEN_URI)) {
+                    token->type = TKTYPE_ACCESS;
+                    if (token->flag == TKFLAG_PERSIST) saveToken(token);
+                    return 1;
+                }
+                else return 0;
+        default :
+                memset(token, 0, sizeof(Token));
+                if (getOAuthToken(token, appid, key, secret, alias, AUTH_REQUEST_TOKEN_URI)) {
+                    token->type = TKTYPE_REQUEST;
+                    if (getOAuthToken(token, appid, key, secret, alias, AUTH_ACCESS_TOKEN_URI)) {
+                        token->type = TKTYPE_ACCESS;
+                        if (token->flag == TKFLAG_PERSIST) saveToken(token);
+                        return 1;
+                    }
+                    else {
+                        saveToken(token);
+                        return 0;
+                    }
+                }
     }
 }
 
@@ -113,7 +135,7 @@ int connectAuthServer() {
     else return -1;
 }
 
-// read http client socket, set req as a body, return http status
+// Read http client socket, set req as a body, return http status
 int getHTTPResponse(int client, char *req) {
     int r, clen = -1;
     int httpstatus = -1;
@@ -350,9 +372,6 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         token->sport = 0;
     }
     token->flag = flag?*flag:0;
-
-//    os_printf(">>>>> token->flag = %s\n",token->flag);
-    os_printf(">>>>> token->sport = %d\n",token->sport);
 
     #ifdef _DEBUG_
         os_printf("oauth_token == %s\n",token->token);

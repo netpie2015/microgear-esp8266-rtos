@@ -1,8 +1,7 @@
 #ifndef MICROGEAR_H
 #define MICROGEAR_H
 
-//#define _DEBUG_
-
+#include "config.h"
 #include "esp_common.h"
 #include "espressif/espconn.h"
 
@@ -15,7 +14,6 @@
 #include "MQTTClient/MQTTClient.h"
 #include "base64.h"
 #include "AuthClient.h"
-//#include "TokenStore.h"
 #include "ESPTime.h"
 
 
@@ -24,15 +22,15 @@
 #define GBSECUREPORT              8883
 #define DEFAULTSECUREMODE         false
 
+#define BROKER_CONNECTED            0
+#define BROKER_UNKNOWNTOKEN         4
+#define BROKER_PAUSEDTOKEN          5
+
+
 #define DISCONNECTED               -3
 #define BUFFER_OVERFLOW            -2
 #define FAILURE                    -1
 #define SUCCESS                     0
-
-
-#define PUBSUBQUEUE_TOPICSIZE      48
-#define PUBSUBQUEUE_PAYLOADSIZE    256
-#define PUBSUBQUEUE_LENGTH          3
 
 #define APPIDSIZE                  32
 #define KEYSIZE                    16
@@ -64,7 +62,7 @@
 #define PSQ_UNSUBSCRIBE            3
 #define PSQ_DISCONNECT             4
 
-#define CTRL_DISCONNECT            "$x01"
+//#define CTRL_DISCONNECT            "$x01"
 
 typedef struct Microgear Microgear;
 typedef struct PubSubQueueMsg PubSubQueueMsg;
