@@ -5,5 +5,6 @@
 
 void setTime(uint32_t ts);
 uint32_t getTime(); 
+char* getTimeStr();
 
 #endif
