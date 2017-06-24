@@ -37,19 +37,10 @@ void microgear_setToken(Microgear *mg, char *token, char* tokensecret, char *end
     }
  }
 
-uint16_t strxcpy(char *dest, char *src, uint16_t max) {
-    if (strlen(src) <= max) {
-        max = strlen(src);
-    }
-    strncpy(dest,src,max);
-    dest[max] = '\0';
-    return max;
-}
-
 int microgear_setAlias(Microgear *mg, char *alias) {
     if (alias && alias[0] != '\0') {
         char setaliascmd[MAXALIASSIZE+12];
-        sprintf(setaliascmd,"/@setalias/%s",mg->alias);
+        addattr(setaliascmd,"/@setalias/",mg->alias);
         return microgear_publish(mg, setaliascmd, "", NULL);
     }
     else return FAILURE;
@@ -57,7 +48,7 @@ int microgear_setAlias(Microgear *mg, char *alias) {
 
 int microgear_chat(Microgear *mg, char *alias, char *payload) {
     char chattopic[MAXALIASSIZE+11];
-    sprintf(chattopic,"/gearname/%s",alias);
+    addattr(chattopic,"/gearname/",alias);
     return microgear_publish(mg,chattopic,payload,&DefaultPubOpt);
 }
 
@@ -215,6 +206,7 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
 
     MQTTMessage message;
  
+    char *p;
     char topicbuff[PUBSUBQUEUE_TOPICSIZE+1];
     char mqtt_username[MQTT_USERNAME_SIZE+1];
     char raw_password[20];
@@ -248,8 +240,13 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
         }
 
         setTime(getServerTime());
-        sprintf(mqtt_username,"%s%%%s%%%s",token.token,mg->key,getTimeStr());
-        sprintf(hashkey,"%s&%s",token.secret,mg->secret);
+
+        strrep(mqtt_username, token.token);
+        p = addattr(mqtt_username+strlen(token.token), "%", mg->key);
+        addattr(p, "%", getTimeStr());
+        strrep(hashkey, token.secret);
+        addattr(hashkey+strlen(token.secret), "&", mg->secret);
+
         hmac_sha1 (hashkey, strlen(hashkey), mqtt_username, strlen(mqtt_username), raw_password);
         base64Encode(mqtt_password, raw_password, 20);
 

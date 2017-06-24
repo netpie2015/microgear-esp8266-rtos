@@ -2,6 +2,8 @@
 #define MICROGEAR_H
 
 #include "config.h"
+#include "function.h"
+
 #include "esp_common.h"
 #include "espressif/espconn.h"
 
@@ -102,8 +104,6 @@ struct PubSubQueueMsg {
 struct PubOpt {
     bool retained;
 };
-
-uint16_t strxcpy(char*, char*, uint16_t);
 
 bool isConnected(Microgear*);
 

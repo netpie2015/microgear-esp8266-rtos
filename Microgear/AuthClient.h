@@ -4,6 +4,7 @@
 #define MGREV "E8R1a"
 
 #include "config.h"
+#include "function.h"
 
 #include "lwip/err.h"
 #include "lwip/sockets.h"

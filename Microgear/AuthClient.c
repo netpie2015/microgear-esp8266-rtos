@@ -1,25 +1,12 @@
+/*
+*  Microgear authentication client library
+*  OAuth 1.0a Revision
+*/
+
 #include "AuthClient.h"
 #include <limits.h>
 
 extern xSemaphoreHandle wifi_semaphore;
-
-char* strrep(char* dest, char* src) {
-    if (src) strcpy(dest,src);
-    else *dest = 0;
-    return dest;
-}
-
-char* addattr(char *src, char* str1, char* str2) {
-    size_t s1,s2;
-    s1 = strlen(str1);
-    memmove(src, str1, s1);
-    if (str2) {
-        s2 = strlen(str2);
-        memmove(src+s1, str2, s2);
-        return src+s1+s2;
-    }
-    else return src+s1;
-}
 
 long headerParseLong(char* key, int plen, char* str) {
     static long val;
