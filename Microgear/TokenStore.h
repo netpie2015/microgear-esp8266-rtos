@@ -7,18 +7,22 @@
 
 #define ESP_FLASH_SEC            0x79
 
+#define KEYSIZE                  16
 #define TOKENSIZE                16
 #define TOKENSECRETSIZE          32
 #define ENDPOINTSIZE             200
+#define REVOKECODESIZE			 28
 
 struct token_struct{
     char type;
+	char key[KEYSIZE+1];
     char token[TOKENSIZE+1];
     char secret[TOKENSECRETSIZE+1];
     char saddr[ENDPOINTSIZE+1];
     uint16_t sport;
     char flag;
-    char dummy[1]; // make struct size devidable by 4
+    char revokecode[REVOKECODESIZE+1];
+    char checksum[2];
 };
 
 typedef struct token_struct Token;

@@ -11,6 +11,6 @@ void loadToken(Token *token) {
 }
 
 void clearToken(Token *token) {
-    memset(token, 0, sizeof(Token));
+	if (token) memset(token, 0, sizeof(Token));
     spi_flash_erase_sector(ESP_FLASH_SEC);
 }
