@@ -122,16 +122,16 @@ int connectAuthServer() {
     else return -1;
 }
 
-// Read http client socket, set req as a body, return http status
-int getHTTPResponse(int client, char *req) {
+// Read http client socket, set buff as a body, return http status
+int getHTTPResponse(int client, char *buff) {
     int r, clen = -1;
     int httpstatus = -1;
     char *h, *p, *t;
     char header = 1;
 
-    t = req;
+    t = buff;
     while ((r = read(client , t, READ_CHUNK_SIZE)) > 0) {
-        h = p = req;
+        h = p = buff;
         t += r;
         *t = 0;
         if (header) {
@@ -155,33 +155,33 @@ int getHTTPResponse(int client, char *req) {
                     }
                 }
             }
-            memmove(req, h, t-h+1);             // shift the current chunk (ended with \0) to the front
-            t = req+(t-h);
+            memmove(buff, h, t-h+1);             // shift the current chunk (ended with \0) to the front
+            t = buff+(t-h);
         }
     }
-    if (clen >= 0) *(req+clen)=0;
+    if (clen >= 0) *(buff+clen)=0;
     return httpstatus;
 }
 
 uint32_t getServerTime() {
     #define REQUESTCMD "GET /api/time HTTP/1.1\r\nConnection: close\r\n\r\n"
-    char* req;
+    char* buff;
     int tmclient;
     uint32_t time = 0;
 
     if ((tmclient = connectAuthServer()) >= 0) {
-        req = (char *)malloc(HTTP_BUFFER_SIZE);
-        memset(req, 0, HTTP_BUFFER_SIZE);
+        buff = (char *)malloc(HTTP_BUFFER_SIZE);
+        memset(buff, 0, HTTP_BUFFER_SIZE);
 
         if (write(tmclient, REQUESTCMD, STRLEN(REQUESTCMD)) < 0) {
             close(tmclient);
             return 0;
         }
-        memset(req, 0, strlen(req));
-        if (getHTTPResponse(tmclient, req) == 200) {
-            time = headerParseLong("",0,req);
+        memset(buff, 0, strlen(buff));
+        if (getHTTPResponse(tmclient, buff) == 200) {
+            time = headerParseLong("",0,buff);
         }
-        free(req);
+        free(buff);
     }
     close(tmclient);
     return time;
@@ -189,7 +189,7 @@ uint32_t getServerTime() {
 
 int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alias, char* uri) {
     int authclient;
-    char *req;
+    char *buff;
 
     if ((authclient = connectAuthServer()) >= 0) {
         char *p, *r;
@@ -197,10 +197,10 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         char hashkey[HASKKEYSIZE+1];
         char rawsig[HMACBASE64SIZE];
 
-        req = (char *)malloc(HTTP_BUFFER_SIZE);
-        memset(req, 0, HTTP_BUFFER_SIZE);
+        buff = (char *)malloc(HTTP_BUFFER_SIZE);
+        memset(buff, 0, HTTP_BUFFER_SIZE);
 
-        p = addattr(req, "POST ",uri);
+        p = addattr(buff, "POST ",uri);
         p = addattr(p, " HTTP 1.1\r\n", NULL);
         p = addattr(p, "Authorization: OAuth oauth_callback=\"scope%3D%26appid%3D", appid);
         p = addattr(p, "%26mgrev%3D", MGREV);
@@ -214,14 +214,14 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         }
         p = addattr(p, "\",oauth_version=\"1.0\"",NULL);
 
-        if (write(authclient, req, strlen(req)) < 0) {
+        if (write(authclient, buff, strlen(buff)) < 0) {
             printf("... socket send failed\r\n");
             close(authclient);
-            free(req);
+            free(buff);
             return 0;
         }
-        memmove(req+(34+STRLEN(AUTH_ADDRESS)), req+42, HTTP_BUFFER_SIZE-(42+STRLEN(AUTH_ADDRESS)));
-        p = addattr(req , "POST&http%3A%2F%2F", NULL);
+        memmove(buff+(34+STRLEN(AUTH_ADDRESS)), buff+42, HTTP_BUFFER_SIZE-(42+STRLEN(AUTH_ADDRESS)));
+        p = addattr(buff , "POST&http%3A%2F%2F", NULL);
         p = addattr(p, AUTH_ADDRESS, "%3A");
         p = addattr(p, AUTH_PORT,NULL);
         r = uri;
@@ -242,7 +242,7 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
                             break;
                 case ',': case '%': case '=':   // change , to & and encode special characters
                             memcpy(rep, *r==','?"%26":*r=='%'?"%25":"%3D", 3);
-                            memmove(p+2, p, HTTP_BUFFER_SIZE-(p-req)-2);
+                            memmove(p+2, p, HTTP_BUFFER_SIZE-(p-buff)-2);
                             memcpy(p,rep,3);
                             r+=3; p+=3;
                             break;
@@ -260,16 +260,16 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
 
         #ifdef _DEBUG_
             os_printf("Hash key:\n%s\n",hashkey);
-            os_printf("Signature base string:\n%s\n",req);
+            os_printf("Signature base string:\n%s\n",buff);
         #endif
 
-        hmac_sha1 (hashkey, strlen(hashkey), req, strlen(req), rawsig);
-        memset(req, 0, HTTP_BUFFER_SIZE);
-        memcpy(req, ",oauth_signature=\"",18);
-        base64Encode(req+18, rawsig, 20);
-        memcpy(req+18+28, "\"\r\n", 3);
+        hmac_sha1 (hashkey, strlen(hashkey), buff, strlen(buff), rawsig);
+        memset(buff, 0, HTTP_BUFFER_SIZE);
+        memcpy(buff, ",oauth_signature=\"",18);
+        base64Encode(buff+18, rawsig, 20);
+        memcpy(buff+18+28, "\"\r\n", 3);
 
-        p = req+18;
+        p = buff+18;
         r = p;
         while (*p != 0) {
 
@@ -280,7 +280,7 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
                 default   : memset(rep, 0, 1); break;
             }
             if (*rep != 0) {
-                memmove(p+2, p, HTTP_BUFFER_SIZE-(p-req)-2);
+                memmove(p+2, p, HTTP_BUFFER_SIZE-(p-buff)-2);
                 r+=3;
                 memcpy(p,rep,3);
                 p+=3;
@@ -294,18 +294,18 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         }
 
         #ifdef _DEBUG_
-            os_printf("oauth_signature = %s\n",req+18);
+            os_printf("oauth_signature = %s\n",buff+18);
         #endif
 
-        write(authclient, req, strlen(req));
-        memset(req, 0, HTTP_BUFFER_SIZE);
-        p = addattr(req, "Host: ", AUTH_ADDRESS);
+        write(authclient, buff, strlen(buff));
+        memset(buff, 0, HTTP_BUFFER_SIZE);
+        p = addattr(buff, "Host: ", AUTH_ADDRESS);
         p = addattr(p, ":", AUTH_PORT);
         p = addattr(p, "\r\nConnection: close\r\nUser-Agent: E8R\r\n\r\n", NULL);
-        if (write(authclient, req, strlen(req)) < 0) {
+        if (write(authclient, buff, strlen(buff)) < 0) {
             printf("... socket send failed\r\n");
             close(authclient);
-            free(req);
+            free(buff);
             return 0;
         }
     }
@@ -322,15 +322,15 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
     char *saddr = NULL;
     char *sport = NULL;
 
-    httpstatus = getHTTPResponse(authclient, req);
+    httpstatus = getHTTPResponse(authclient, buff);
 
     #ifdef _DEBUG_
         os_printf("\n");
         os_printf("Attribute: http status = %d\n",httpstatus);
-        os_printf("Body: %s\n",req);
+        os_printf("Body: %s\n",buff);
     #endif
 
-    t = h = p = req;
+    t = h = p = buff;
     while (*h != 0) {
         if (*p != '&' && *p) p++;
         else {
@@ -346,6 +346,8 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         }
     }
 
+    memset(token, 0, sizeof(Token));
+    strrep(token->key, key);
     strrep(token->token, oauth_token);
     strrep(token->secret, oauth_token_secret);
     if (endpoint) {
@@ -360,15 +362,27 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
     }
     token->flag = flag?*flag:0;
 
+    // generate a revoke code
+    strrep(buff, token->secret);
+    addattr(buff+strlen(token->secret), "&", secret);
+    p = buff+strlen(buff)+1;
+    hmac_sha1 (buff, strlen(buff), token->token, strlen(token->token), p);
+    base64Encode(token->revokecode, p, 20);    
+    for (p=token->revokecode; *p!=0; p++) {
+        if (*p=='/') *p = '_';
+    }
+
     #ifdef _DEBUG_
         os_printf("oauth_token == %s\n",token->token);
         os_printf("oauth_token_secret == %s\n",token->secret);
         os_printf("flag == %s\n",flag);
         os_printf("saddr = %s\n",saddr);
         os_printf("sport = %s\n",sport);
+        os_printf("hash key for revokecode = %s\n",buff);
+        os_printf("revokecode = %s\n",token->revokecode);
     #endif
 
-    free(req);
+    free(buff);
     close(authclient);
     return 1;
 }

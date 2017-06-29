@@ -12,6 +12,7 @@
 #include "lwip/netdb.h"
 #include "lwip/dns.h"
 
+#include "function.h"
 #include "ESPTime.h"
 #include "TokenStore.h"
 
@@ -20,6 +21,7 @@
 
 #define KEYSIZE                    		16
 #define SECRETSIZE                 		32
+#define REVOKECODESIZE			        28
 
 #define HMACBASE64SIZE					28
 #define HASKKEYSIZE				   		SECRETSIZE+TOKENSECRETSIZE+1
