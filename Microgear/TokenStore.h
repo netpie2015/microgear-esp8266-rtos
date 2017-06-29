@@ -23,6 +23,7 @@ struct token_struct{
     char flag;
     char revokecode[REVOKECODESIZE+1];
     char checksum[2];
+    char dummy[1];			// make struct size devidable by 4
 };
 
 typedef struct token_struct Token;
