@@ -37,6 +37,10 @@ void microgear_setToken(Microgear *mg, char *token, char* tokensecret, char *end
     }
  }
 
+void microgear_clearToken(Microgear *mg) {
+    clearToken(NULL);
+}
+
 int microgear_setAlias(Microgear *mg, char *alias) {
     if (alias && alias[0] != '\0') {
         char setaliascmd[MAXALIASSIZE+12];

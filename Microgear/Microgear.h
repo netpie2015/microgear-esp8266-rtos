@@ -121,6 +121,8 @@ int microgear_chat(Microgear*, char*, char*);
 int microgear_subscribe(Microgear*, char*);
 int microgear_unsubscribe(Microgear*, char*);
 
+void microgear_clearToken(Microgear*);
+
 void microgear_on(Microgear*, unsigned char,void (* callback)(char*, uint8_t*, uint16_t));
 
 #endif
