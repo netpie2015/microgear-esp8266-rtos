@@ -26,3 +26,9 @@ int strxcpy(char *dest, char *src, int max) {
     dest[max] = '\0';
     return max;
 }
+
+char* tail(char* str) {
+    char *p = str;
+    while (*p!=0) p++;
+    return p;
+}
