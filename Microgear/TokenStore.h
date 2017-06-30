@@ -29,7 +29,7 @@ typedef struct token_struct Token;
 
 void saveToken(Token*);
 void loadToken(Token*);
-void clearToken(Token*);
+void clearTokenStore(Token*);
 void generateChecksum(Token*);
 bool compareChecksum(Token*);
 

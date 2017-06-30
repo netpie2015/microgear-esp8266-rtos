@@ -10,7 +10,7 @@ void loadToken(Token *token) {
     spi_flash_read(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)token, sizeof(Token));
 }
 
-void clearToken(Token *token) {
+void clearTokenStore(Token *token) {
     memset(token, 0, sizeof(Token));
     spi_flash_erase_sector(ESP_FLASH_SEC);
 }
