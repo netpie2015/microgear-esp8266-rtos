@@ -7,7 +7,7 @@
 
 #define ESP_FLASH_SEC            0x79
 
-#define KEYSIZE                  16
+#define KEYSIZE 				 16
 #define TOKENSIZE                16
 #define TOKENSECRETSIZE          32
 #define ENDPOINTSIZE             200
@@ -28,9 +28,7 @@ struct token_struct{
 typedef struct token_struct Token;
 
 void saveToken(Token*);
-void loadToken(Token*);
+int loadToken(Token*);
 void clearTokenStore(Token*);
-void generateChecksum(Token*);
-bool compareChecksum(Token*);
 
 #endif

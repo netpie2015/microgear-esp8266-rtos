@@ -1,40 +1,45 @@
 #include "TokenStore.h"
 
-void saveToken(Token *token) {
-    spi_flash_erase_sector(ESP_FLASH_SEC);
-    spi_flash_write(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)token, sizeof(Token));
-}
-
-void loadToken(Token *token) {
-    memset(token, 0, sizeof(Token));
-    spi_flash_read(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)token, sizeof(Token));
-}
-
-void clearTokenStore(Token *token) {
-    memset(token, 0, sizeof(Token));
-    spi_flash_erase_sector(ESP_FLASH_SEC);
-}
-
 static uint32_t checksum(uint8_t *token, size_t len) {
     uint32_t sum = 0;
-    int i = 0;
     while(len--) {
-    	if(i++ % 4 == 0) os_printf("\n");
         sum += *(token++);
     }
     return sum;
 }
 
-void generateChecksum(Token *token) {
+static void generateChecksum(Token *token) {
     size_t len = sizeof(Token) - sizeof(token->checksum);
     token->checksum = checksum((uint8_t *)token, len);
 }
 
-bool compareChecksum(Token *token) {
+static bool compareChecksum(Token *token) {
     size_t len = sizeof(Token) - sizeof(token->checksum);
     uint32_t chks = checksum((uint8_t *)token, len);
     if(token->checksum == chks) {
        return true;
     }
     return false;
+}
+
+void saveToken(Token *token) {
+	generateChecksum(token);
+    spi_flash_erase_sector(ESP_FLASH_SEC);
+    spi_flash_write(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)token, sizeof(Token));
+}
+
+int loadToken(Token *token) {
+	Token buffer;
+    memset(&buffer, 0, sizeof(Token));
+    spi_flash_read(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)&buffer, sizeof(Token));
+    if(compareChecksum(&buffer)){
+    	*token = buffer;
+    	return 1;
+    }
+    else return 0;
+}
+
+void clearTokenStore(Token *token) {
+    memset(token, 0, sizeof(Token));
+    spi_flash_erase_sector(ESP_FLASH_SEC);
 }
