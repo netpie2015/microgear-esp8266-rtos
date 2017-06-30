@@ -11,19 +11,18 @@
 #define TOKENSIZE                16
 #define TOKENSECRETSIZE          32
 #define ENDPOINTSIZE             200
-#define REVOKECODESIZE			 28
+#define REVOKECODESIZE           28
 
 struct token_struct{
     char type;
-	char key[KEYSIZE+1];
+    char key[KEYSIZE+1];
     char token[TOKENSIZE+1];
     char secret[TOKENSECRETSIZE+1];
     char saddr[ENDPOINTSIZE+1];
     uint16_t sport;
     char flag;
     char revokecode[REVOKECODESIZE+1];
-    char checksum[2];
-    char dummy[1];			// make struct size devidable by 4
+    uint32_t checksum;
 };
 
 typedef struct token_struct Token;
@@ -31,5 +30,7 @@ typedef struct token_struct Token;
 void saveToken(Token*);
 void loadToken(Token*);
 void clearToken(Token*);
+void generateChecksum(Token*);
+bool compareChecksum(Token*);
 
 #endif
