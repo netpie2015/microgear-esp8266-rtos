@@ -38,7 +38,24 @@ void microgear_setToken(Microgear *mg, char *token, char* tokensecret, char *end
  }
 
 void microgear_clearToken(Microgear *mg) {
-    clearToken(NULL);
+    if (mg->tokenrec) {
+        clearTokenStore(mg->tokenrec);
+    }
+}
+
+void microgear_revokeToken(Microgear *mg) {
+    if (!mg->tokenrec) {
+        Token token;
+        if (loadToken(&token)) {
+            mg->tokenrec = &token;
+        }
+    }
+
+    if (mg->tokenrec) {
+        revokeToken(mg->tokenrec);
+        clearTokenStore(mg->tokenrec);
+        mg->tokenrec = NULL;
+    }
 }
 
 int microgear_setAlias(Microgear *mg, char *alias) {
@@ -348,7 +365,7 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
                 }
                 else {
                     #ifdef _DEBUG_
-                        clearToken(&token);
+                        clearTokenStore(&token);
                         os_printf("Connection refused - unknown token\n");
                     #endif
                 }

@@ -1,3 +1,4 @@
+#define DEBUG
 #define _DEBUG_
 
 #define PUBSUBQUEUE_TOPICSIZE      48

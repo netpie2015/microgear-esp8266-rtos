@@ -29,14 +29,12 @@ void saveToken(Token *token) {
 }
 
 int loadToken(Token *token) {
-	Token buffer;
-    memset(&buffer, 0, sizeof(Token));
-    spi_flash_read(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)&buffer, sizeof(Token));
-    if(compareChecksum(&buffer)){
-    	*token = buffer;
-    	return 1;
+    spi_flash_read(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)&token, sizeof(Token));
+    if(compareChecksum(token)) return 1;
+    else {
+	    memset(token, 0, sizeof(Token));
+    	return 0;
     }
-    else return 0;
 }
 
 void clearTokenStore(Token *token) {

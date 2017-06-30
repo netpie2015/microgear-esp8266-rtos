@@ -78,7 +78,8 @@ struct Microgear {
     char *token;
     char *tokensecret;
     char *host;
-    uint16_t port; 
+    uint16_t port;
+    Token *tokenrec;
 
     MQTTClient client;
     struct Network *network;
@@ -122,6 +123,7 @@ int microgear_subscribe(Microgear*, char*);
 int microgear_unsubscribe(Microgear*, char*);
 
 void microgear_clearToken(Microgear*);
+void microgear_revokeToken(Microgear*);
 
 void microgear_on(Microgear*, unsigned char,void (* callback)(char*, uint8_t*, uint16_t));
 

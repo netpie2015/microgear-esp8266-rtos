@@ -82,6 +82,11 @@ int getAccessToken(Token *token, char* appid, char* key, char* secret, char* ali
     #endif
 
     loadToken(token);
+    if (memcmp(token->key, key, KEYSIZE)!=0) {
+        revokeToken(token);
+        token->type = 0;
+    }
+
     switch (token->type) {
         case TKTYPE_ACCESS :
                 return 1; 
@@ -385,4 +390,30 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
     free(buff);
     close(authclient);
     return 1;
+}
+
+int revokeToken(Token* token) {
+    char* buff;
+    int client;
+    int success = 0;
+
+    if ((client = connectAuthServer()) >= 0) {
+        buff = (char *)malloc(HTTP_BUFFER_SIZE);
+        memset(buff, 0, HTTP_BUFFER_SIZE);
+        memcpy(buff,"GET /api/revoke/",16);
+        addattr(buff+16, token->token, "/");
+        addattr(tail(buff), token->revokecode, " HTTP/1.1\r\nConnection: close\r\n\r\n");
+        if (write(client, buff, strlen(buff)) < 0) {
+            free(buff);
+            close(client);
+            return 0;
+        }
+        memset(buff, 0, strlen(buff));
+        if (getHTTPResponse(client, buff) == 200) {
+            success = (memcmp("FAILED", buff, 6)!=0);
+        }
+        free(buff);
+    }
+    close(client);
+    return success;
 }
