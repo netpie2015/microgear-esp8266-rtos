@@ -91,13 +91,13 @@ int microgear_publish(Microgear *mg, char *topic, char *payload, PubOpt *opt) {
     }
 
     if (xQueueSend(mg->ps_queue, (void *)(&data), 0) == pdFALSE) {
-        #ifdef _DEBUG_
+        #ifdef DEBUG
             os_printf("PS queue overflow.\r\n");
         #endif
         return -1;
     }
     else {
-        #ifdef _DEBUG_
+        #ifdef DEBUG
             os_printf("Publish Success.\r\n");
         #endif
         return 0;
@@ -109,7 +109,7 @@ LOCAL void ICACHE_FLASH_ATTR defaultMsgHandler(MessageData* md, void *c) {
     int i;
     MQTTMessage* message = md->message;
 
-    #ifdef _DEBUG_
+    #ifdef DEBUG
         os_printf("Received: ");
         for (i = 0; i < md->topic->lenstring.len; ++i)
             dmsg_putchar(md->topic->lenstring.data[i]);
@@ -182,13 +182,13 @@ int microgear_subscribe(Microgear *mg, char *topic) {
     strxcpy(data.topic+strlen(mg->appid)+1, topic, PUBSUBQUEUE_TOPICSIZE-strlen(mg->appid)-1);
 
     if (xQueueSend(mg->ps_queue, (void *)(&data), 0) == pdFALSE) {
-        #ifdef _DEBUG_
+        #ifdef DEBUG
             os_printf("PS queue overflow.\r\n");
         #endif
         return -1;
     }
     else {
-        #ifdef _DEBUG_
+        #ifdef DEBUG
             os_printf("Subscribe Success.\r\n");
         #endif
         return 0;
@@ -204,13 +204,13 @@ int microgear_unsubscribe(Microgear *mg, char *topic) {
     strxcpy(data.topic+strlen(mg->appid)+1, topic, PUBSUBQUEUE_TOPICSIZE-strlen(mg->appid)-1);
 
     if (xQueueSend(mg->ps_queue, (void *)(&data), 0) == pdFALSE) {
-        #ifdef _DEBUG_
+        #ifdef DEBUG
             os_printf("PS queue overflow.\r\n");
         #endif
         return -1;
     }
     else {
-        #ifdef _DEBUG_
+        #ifdef DEBUG
             os_printf("Subscribe Success.\r\n");
         #endif
         return 0;
@@ -273,7 +273,7 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
         hmac_sha1 (hashkey, strlen(hashkey), mqtt_username, strlen(mqtt_username), raw_password);
         base64Encode(mqtt_password, raw_password, 20);
 
-        #ifdef _DEBUG_
+        #ifdef DEBUG
             os_printf("mqtt_username = %s\n", mqtt_username);
             os_printf("real mqtt_username = %s\n", mqtt_username+strlen(token.token)+1);
             os_printf("raw_password = %s\n", raw_password);
@@ -284,7 +284,7 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
  
         ret = ConnectNetwork(mg->network, token.saddr, token.sport);
 
-        #ifdef _DEBUG_
+        #ifdef DEBUG
             os_printf("Connecting network -- ret = %d\n",ret);
         #endif
 
@@ -302,13 +302,13 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
             data.keepAliveInterval = 15;
             data.cleansession = 1;
 
-            #ifdef _DEBUG_
+            #ifdef DEBUG
                 os_printf(" MQTT connecting ...");
             #endif
 
             ret = MQTTConnect(&(mg->client), &data);
 
-            #ifdef _DEBUG_
+            #ifdef DEBUG
                 os_printf("broker connection status = %d\n",ret);
             #endif
 
@@ -355,18 +355,18 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
                         break;
                     }
                 }
-                #ifdef _DEBUG_
+                #ifdef DEBUG
                     os_printf("Connection broken, request restart\r\n");
                 #endif
             }
             else {
                 if (ret == BROKER_PAUSEDTOKEN) {
-                    #ifdef _DEBUG_
+                    #ifdef DEBUG
                         os_printf("Token paused\n");
                     #endif
                 }
                 else {
-                    #ifdef _DEBUG_
+                    #ifdef DEBUG
                         clearTokenStore(&token, mg->id);
                         os_printf("Connection refused - unknown token\n");
                     #endif

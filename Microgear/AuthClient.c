@@ -77,13 +77,13 @@ int getAccessToken(Token *token, char* appid, char* key, char* secret, char* ali
 
     time = getServerTime();
     setTime(time);
-    #ifdef _DEBUG_
+    #ifdef DEBUG
         os_printf("Server Time == %d\n", time);
     #endif
 
     loadToken(token, id);
 
-    #ifdef _DEBUG_
+    #ifdef DEBUG
         os_printf("Loaded token key == %s\n", token->key);
     #endif
 
@@ -151,7 +151,7 @@ int getHTTPResponse(int client, char *buff) {
                     p++;
                     if (*p == '\n')  {          // if \r\n found
                         *(p-1) = *p = 0;
-                        #ifdef _DEBUG_
+                        #ifdef DEBUG
                             if (*h != 0) os_printf("Header: %s\n",h);
                         #endif
                         if (httpstatus==-1) {
@@ -268,7 +268,7 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         strcat(hashkey,"&");
         strcat(hashkey,token->secret);
 
-        #ifdef _DEBUG_
+        #ifdef DEBUG
             os_printf("Hash key:\n%s\n",hashkey);
             os_printf("Signature base string:\n%s\n",buff);
         #endif
@@ -303,7 +303,7 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
             }
         }
 
-        #ifdef _DEBUG_
+        #ifdef DEBUG
             os_printf("oauth_signature = %s\n",buff+18);
         #endif
 
@@ -334,7 +334,7 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
 
     httpstatus = getHTTPResponse(authclient, buff);
 
-    #ifdef _DEBUG_
+    #ifdef DEBUG
         os_printf("\n");
         os_printf("Attribute: http status = %d\n",httpstatus);
         os_printf("Body: %s\n",buff);
@@ -382,7 +382,7 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
         if (*p=='/') *p = '_';
     }
 
-    #ifdef _DEBUG_
+    #ifdef DEBUG
         os_printf("oauth_token == %s\n",token->token);
         os_printf("oauth_token_secret == %s\n",token->secret);
         os_printf("flag == %s\n",flag);
