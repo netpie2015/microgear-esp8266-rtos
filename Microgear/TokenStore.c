@@ -29,7 +29,7 @@ void saveToken(Token *token) {
 }
 
 int loadToken(Token *token) {
-    spi_flash_read(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)&token, sizeof(Token));
+    spi_flash_read(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)token, sizeof(Token));
     if(compareChecksum(token)) return 1;
     else {
 	    memset(token, 0, sizeof(Token));
