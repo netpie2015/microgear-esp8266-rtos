@@ -8,7 +8,7 @@
 
 extern xSemaphoreHandle wifi_semaphore;
 
-long headerParseLong(char* key, int plen, char* str) {
+long ICACHE_FLASH_ATTR headerParseLong(char* key, int plen, char* str) {
     static long val;
     if (strncmp(str, key, strlen(key))==0) {
         if (plen > 0) *(str+strlen(key)+plen) = 0;
@@ -21,7 +21,7 @@ long headerParseLong(char* key, int plen, char* str) {
     else return INT_NULL;
 }
 
-int extract(char *str, char *key, char **vp) {
+int ICACHE_FLASH_ATTR extract(char *str, char *key, char **vp) {
     if (memcmp(str, key, strlen(key))==0) {
         *vp = str+strlen(key);
         return strlen(str) - strlen(key);
@@ -32,7 +32,7 @@ int extract(char *str, char *key, char **vp) {
     }
 }
 
-int parseendpoint(char *endpoint, char **saddr, char **sport) {
+int ICACHE_FLASH_ATTR parseendpoint(char *endpoint, char **saddr, char **sport) {
     char *a, *p;
     *sport = NULL;
     if (endpoint!=NULL && memcmp(endpoint,"pie://",6) == 0) {
@@ -53,7 +53,7 @@ int parseendpoint(char *endpoint, char **saddr, char **sport) {
     }
 }
 
-char* urldecode(char *str) {
+char* ICACHE_FLASH_ATTR urldecode(char *str) {
     char *p, *h, d=0;
     char c[3] = {0,0,0};
 
@@ -72,7 +72,7 @@ char* urldecode(char *str) {
     return str;
 }
 
-int getAccessToken(Token *token, char* appid, char* key, char* secret, char* alias, uint8_t id) {
+int ICACHE_FLASH_ATTR getAccessToken(Token *token, char* appid, char* key, char* secret, char* alias, uint8_t id) {
     uint32_t time;
 
     time = getServerTime();
@@ -119,7 +119,7 @@ int getAccessToken(Token *token, char* appid, char* key, char* secret, char* ali
     }
 }
 
-int connectAuthServer() {
+int ICACHE_FLASH_ATTR connectAuthServer() {
     const struct addrinfo hints = {
         .ai_family = AF_INET,
         .ai_socktype = SOCK_STREAM,
@@ -133,7 +133,7 @@ int connectAuthServer() {
 }
 
 // Read http client socket, set buff as a body, return http status
-int getHTTPResponse(int client, char *buff) {
+int ICACHE_FLASH_ATTR getHTTPResponse(int client, char *buff) {
     int r, clen = -1;
     int httpstatus = -1;
     char *h, *p, *t;
@@ -173,7 +173,7 @@ int getHTTPResponse(int client, char *buff) {
     return httpstatus;
 }
 
-uint32_t getServerTime() {
+uint32_t ICACHE_FLASH_ATTR getServerTime() {
     #define REQUESTCMD "GET /api/time HTTP/1.1\r\nConnection: close\r\n\r\n"
     char* buff;
     int tmclient;
@@ -197,7 +197,7 @@ uint32_t getServerTime() {
     return time;
 }
 
-int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alias, char* uri) {
+int ICACHE_FLASH_ATTR getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alias, char* uri) {
     int authclient;
     char *buff;
 
@@ -397,7 +397,7 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
     return 1;
 }
 
-int callRevokeTokenAPI(Token* token) {
+int ICACHE_FLASH_ATTR callRevokeTokenAPI(Token* token) {
     char* buff;
     int client;
     int success = 0;

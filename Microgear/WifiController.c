@@ -51,7 +51,7 @@ void ICACHE_FLASH_ATTR wifi_task(void *pvParameters) {
     }
 }
 
-int startWifi(struct station_config* wificonfig) {
+int ICACHE_FLASH_ATTR startWifi(struct station_config* wificonfig) {
     vSemaphoreCreateBinary(wifi_semaphore);
     xSemaphoreTake(wifi_semaphore, 0);              // take the default semaphore
     xTaskCreate(wifi_task, "wifi", 256, wificonfig, tskIDLE_PRIORITY + 1, NULL);

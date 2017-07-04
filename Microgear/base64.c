@@ -2,7 +2,7 @@
 
 const static char base64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-char* base64Encode(char *buffer, const uint8_t *data, size_t data_len) {
+char* ICACHE_FLASH_ATTR base64Encode(char *buffer, const uint8_t *data, size_t data_len) {
   int i, len;
 
   for (i = 0, len = data_len; len > 0; i += 3, len -= 3)

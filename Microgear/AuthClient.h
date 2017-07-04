@@ -32,10 +32,10 @@
 #define INT_NULL						INT_MIN
 #define INT_INVALID                     INT_MIN+1
 
-#define AUTH_ADDRESS 			"ga.netpie.io"
-#define AUTH_PORT				"8080"
-#define AUTH_REQUEST_TOKEN_URI  "/api/rtoken"
-#define AUTH_ACCESS_TOKEN_URI   "/api/atoken"
+#define AUTH_ADDRESS 			        "ga.netpie.io"
+#define AUTH_PORT				        "8080"
+#define AUTH_REQUEST_TOKEN_URI          "/api/rtoken"
+#define AUTH_ACCESS_TOKEN_URI           "/api/atoken"
 
 #define INT_NULL						INT_MIN
 #define INT_INVALID                     INT_MIN+1

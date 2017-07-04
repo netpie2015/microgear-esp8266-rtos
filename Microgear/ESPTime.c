@@ -10,16 +10,16 @@ uint32_t secs(void) {
 	return (micros / 1000000);
 }
 
-void setTime(uint32_t ts) {
+void ICACHE_FLASH_ATTR setTime(uint32_t ts) {
 	ts_starttime = ts;
 	ts_localtime = secs();
 }
 
-uint32_t getTime() {
+uint32_t ICACHE_FLASH_ATTR getTime() {
 	return (secs() + ts_starttime - ts_localtime);
 }
 
-char* getTimeStr() {
+char* ICACHE_FLASH_ATTR getTimeStr() {
 	char *p;
 	uint32_t tm = getTime();
 	static char timestr[TIME_STR_LENGTH];

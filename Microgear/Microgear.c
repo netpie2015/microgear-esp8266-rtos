@@ -4,7 +4,7 @@ extern xSemaphoreHandle wifi_semaphore;
 PubOpt DefaultPubOpt = {false};
 static uint8_t mgcount = 0;
 
-void microgear_init(Microgear *mg, char *key, char *secret, char *alias) {
+void ICACHE_FLASH_ATTR microgear_init(Microgear *mg, char *key, char *secret, char *alias) {
     mg->id = mgcount++;
     mg->key = key;
     mg->secret = secret;
@@ -22,7 +22,7 @@ void microgear_init(Microgear *mg, char *key, char *secret, char *alias) {
     mg->ps_queue = xQueueCreate(PUBSUBQUEUE_LENGTH, sizeof(PubSubQueueMsg));
 }
 
-void microgear_setToken(Microgear *mg, char *token, char* tokensecret, char *endpoint) {
+void ICACHE_FLASH_ATTR microgear_setToken(Microgear *mg, char *token, char* tokensecret, char *endpoint) {
     mg->token = token;
     mg->tokensecret = tokensecret;
     mg->host = GBDEFAULTHOST;
@@ -39,13 +39,13 @@ void microgear_setToken(Microgear *mg, char *token, char* tokensecret, char *end
     }
  }
 
-void microgear_clearToken(Microgear *mg) {
+void ICACHE_FLASH_ATTR microgear_clearToken(Microgear *mg) {
     if (mg->tokenrec) {
         clearTokenStore(mg->tokenrec, mg->id);
     }
 }
 
-void microgear_revokeToken(Microgear *mg) {
+void ICACHE_FLASH_ATTR microgear_revokeToken(Microgear *mg) {
     if (!mg->tokenrec) {
         Token token;
         if (loadToken(&token, mg->id)) {
@@ -60,7 +60,7 @@ void microgear_revokeToken(Microgear *mg) {
     }
 }
 
-int microgear_setAlias(Microgear *mg, char *alias) {
+int ICACHE_FLASH_ATTR microgear_setAlias(Microgear *mg, char *alias) {
     if (alias && alias[0] != '\0') {
         char setaliascmd[MAXALIASSIZE+12];
         addattr(setaliascmd,"/@setalias/",mg->alias);
@@ -69,7 +69,7 @@ int microgear_setAlias(Microgear *mg, char *alias) {
     else return FAILURE;
 }
 
-int microgear_chat(Microgear *mg, char *alias, char *payload) {
+int ICACHE_FLASH_ATTR microgear_chat(Microgear *mg, char *alias, char *payload) {
     char chattopic[MAXALIASSIZE+11];
     addattr(chattopic,"/gearname/",alias);
     return microgear_publish(mg,chattopic,payload,&DefaultPubOpt);
@@ -105,7 +105,7 @@ int microgear_publish(Microgear *mg, char *topic, char *payload, PubOpt *opt) {
 }
 
 // Callback when receiving control message
-LOCAL void ICACHE_FLASH_ATTR defaultMsgHandler(MessageData* md, void *c) {
+void defaultMsgHandler(MessageData* md, void *c) {
     int i;
     MQTTMessage* message = md->message;
 
@@ -173,7 +173,7 @@ LOCAL void ICACHE_FLASH_ATTR defaultMsgHandler(MessageData* md, void *c) {
     }
 }
 
-int microgear_subscribe(Microgear *mg, char *topic) {
+int ICACHE_FLASH_ATTR microgear_subscribe(Microgear *mg, char *topic) {
     PubSubQueueMsg data;
 
     data.type= PSQ_SUBSCRIBE;
@@ -195,7 +195,7 @@ int microgear_subscribe(Microgear *mg, char *topic) {
     }
 }
 
-int microgear_unsubscribe(Microgear *mg, char *topic) {
+int ICACHE_FLASH_ATTR microgear_unsubscribe(Microgear *mg, char *topic) {
     PubSubQueueMsg data;
 
     data.type= PSQ_UNSUBSCRIBE;
@@ -217,7 +217,7 @@ int microgear_unsubscribe(Microgear *mg, char *topic) {
     }
 }
 
-LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
+void microgear_task(void *pvParameters) {
     bool activeTask = true;
     Token token;
     Microgear *mg = (Microgear *)pvParameters;
@@ -385,25 +385,25 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
-bool microgear_isConnected(Microgear *mg) {
+bool ICACHE_FLASH_ATTR microgear_isConnected(Microgear *mg) {
     return mg->client.isconnected;
 }
 
-void microgear_connect(Microgear *mg, char* appid) {
+void ICACHE_FLASH_ATTR microgear_connect(Microgear *mg, char* appid) {
     if (mg->mqtttask == NULL) {
         mg->appid = appid;
         xTaskCreate(microgear_task, "microgear", 1024, mg, tskIDLE_PRIORITY + 2, &mg->mqtttask);
     }
 }
 
-void microgear_disconnect(Microgear *mg) {
+void ICACHE_FLASH_ATTR microgear_disconnect(Microgear *mg) {
     PubSubQueueMsg data;
     data.type = PSQ_DISCONNECT;
     xQueueSend(mg->ps_queue, (void *)(&data), 0);
     mg->mqtttask = NULL;
 }
 
-void microgear_on(Microgear *mg, unsigned char event, void (* callback)(char*, uint8_t*,uint16_t)) {
+void ICACHE_FLASH_ATTR microgear_on(Microgear *mg, unsigned char event, void (* callback)(char*, uint8_t*,uint16_t)) {
     switch (event) {
         case MESSAGE : 
                 if (callback) mg->cb_message = callback;
