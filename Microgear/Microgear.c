@@ -2,8 +2,10 @@
 
 extern xSemaphoreHandle wifi_semaphore;
 PubOpt DefaultPubOpt = {false};
+static uint8_t mgcount = 0;
 
 void microgear_init(Microgear *mg, char *key, char *secret, char *alias) {
+    mg->id = mgcount++;
     mg->key = key;
     mg->secret = secret;
     mg->token = NULL;
@@ -39,21 +41,21 @@ void microgear_setToken(Microgear *mg, char *token, char* tokensecret, char *end
 
 void microgear_clearToken(Microgear *mg) {
     if (mg->tokenrec) {
-        clearTokenStore(mg->tokenrec);
+        clearTokenStore(mg->tokenrec, mg->id);
     }
 }
 
 void microgear_revokeToken(Microgear *mg) {
     if (!mg->tokenrec) {
         Token token;
-        if (loadToken(&token)) {
+        if (loadToken(&token, mg->id)) {
             mg->tokenrec = &token;
         }
     }
 
     if (mg->tokenrec) {
-        revokeToken(mg->tokenrec);
-        clearTokenStore(mg->tokenrec);
+        callRevokeTokenAPI(mg->tokenrec);
+        clearTokenStore(mg->tokenrec, mg->id);
         mg->tokenrec = NULL;
     }
 }
@@ -248,7 +250,7 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
         xSemaphoreTake(wifi_semaphore, portMAX_DELAY);
 
         if (mg->token  == NULL) {
-            if (!getAccessToken(&token, mg->appid, mg->key, mg->secret, mg->alias)) {
+            if (!getAccessToken(&token, mg->appid, mg->key, mg->secret, mg->alias, mg->id)) {
                 break;
             }
         }
@@ -365,7 +367,7 @@ LOCAL void ICACHE_FLASH_ATTR microgear_task(void *pvParameters) {
                 }
                 else {
                     #ifdef _DEBUG_
-                        clearTokenStore(&token);
+                        clearTokenStore(&token, mg->id);
                         os_printf("Connection refused - unknown token\n");
                     #endif
                 }

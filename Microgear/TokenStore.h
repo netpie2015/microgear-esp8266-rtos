@@ -5,7 +5,7 @@
 #include "c_types.h"
 #include "spi_flash.h"
 
-#define ESP_FLASH_SEC            0x79
+#define TOKEN_FLASH_SEC            0x100
 
 #define KEYSIZE 				 16
 #define TOKENSIZE                16
@@ -27,8 +27,8 @@ struct token_struct{
 
 typedef struct token_struct Token;
 
-void saveToken(Token*);
-int loadToken(Token*);
-void clearTokenStore(Token*);
+void saveToken(Token*, uint8_t);
+int loadToken(Token*, uint8_t);
+void clearTokenStore(Token*, uint8_t);
 
 #endif

@@ -22,14 +22,14 @@ static bool compareChecksum(Token *token) {
     return false;
 }
 
-void saveToken(Token *token) {
+void saveToken(Token *token, uint8_t id) {
 	generateChecksum(token);
-    spi_flash_erase_sector(ESP_FLASH_SEC);
-    spi_flash_write(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)token, sizeof(Token));
+    spi_flash_erase_sector(TOKEN_FLASH_SEC+id);
+    spi_flash_write((TOKEN_FLASH_SEC+id) * SPI_FLASH_SEC_SIZE, (uint32 *)token, sizeof(Token));
 }
 
-int loadToken(Token *token) {
-    spi_flash_read(ESP_FLASH_SEC * SPI_FLASH_SEC_SIZE, (uint32 *)token, sizeof(Token));
+int loadToken(Token *token, uint8_t id) {
+    spi_flash_read((TOKEN_FLASH_SEC+id) * SPI_FLASH_SEC_SIZE, (uint32 *)token, sizeof(Token));
     if(compareChecksum(token)) return 1;
     else {
 	    memset(token, 0, sizeof(Token));
@@ -37,7 +37,7 @@ int loadToken(Token *token) {
     }
 }
 
-void clearTokenStore(Token *token) {
+void clearTokenStore(Token *token, uint8_t id) {
     memset(token, 0, sizeof(Token));
-    spi_flash_erase_sector(ESP_FLASH_SEC);
+    spi_flash_erase_sector(TOKEN_FLASH_SEC+id);
 }

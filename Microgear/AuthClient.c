@@ -72,7 +72,7 @@ char* urldecode(char *str) {
     return str;
 }
 
-int getAccessToken(Token *token, char* appid, char* key, char* secret, char* alias) {
+int getAccessToken(Token *token, char* appid, char* key, char* secret, char* alias, uint8_t id) {
     uint32_t time;
 
     time = getServerTime();
@@ -81,9 +81,14 @@ int getAccessToken(Token *token, char* appid, char* key, char* secret, char* ali
         os_printf("Server Time == %d\n", time);
     #endif
 
-    loadToken(token);
+    loadToken(token, id);
+
+    #ifdef _DEBUG_
+        os_printf("Loaded token key == %s\n", token->key);
+    #endif
+
     if (memcmp(token->key, key, KEYSIZE)!=0) {
-        revokeToken(token);
+        callRevokeTokenAPI(token);
         token->type = 0;
     }
 
@@ -93,7 +98,7 @@ int getAccessToken(Token *token, char* appid, char* key, char* secret, char* ali
         case TKTYPE_REQUEST :
                 if (getOAuthToken(token, appid, key, secret, alias, AUTH_ACCESS_TOKEN_URI)) {
                     token->type = TKTYPE_ACCESS;
-                    if (token->flag == TKFLAG_PERSIST) saveToken(token);
+                    if (token->flag == TKFLAG_PERSIST) saveToken(token,id);
                     return 1;
                 }
                 else return 0;
@@ -103,11 +108,11 @@ int getAccessToken(Token *token, char* appid, char* key, char* secret, char* ali
                     token->type = TKTYPE_REQUEST;
                     if (getOAuthToken(token, appid, key, secret, alias, AUTH_ACCESS_TOKEN_URI)) {
                         token->type = TKTYPE_ACCESS;
-                        if (token->flag == TKFLAG_PERSIST) saveToken(token);
+                        if (token->flag == TKFLAG_PERSIST) saveToken(token, id);
                         return 1;
                     }
                     else {
-                        saveToken(token);
+                        saveToken(token,id);
                         return 0;
                     }
                 }
@@ -392,7 +397,7 @@ int getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alia
     return 1;
 }
 
-int revokeToken(Token* token) {
+int callRevokeTokenAPI(Token* token) {
     char* buff;
     int client;
     int success = 0;

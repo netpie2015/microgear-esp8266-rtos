@@ -71,13 +71,14 @@ typedef struct PubSubQueueMsg PubSubQueueMsg;
 typedef struct PubOpt PubOpt;
 
 struct Microgear {
+    uint8_t id;
     char *appid;
     char *key;  
     char *secret;
     char *alias;
     char *token;
     char *tokensecret;
-    char *host;
+    char *host;    
     uint16_t port;
     Token *tokenrec;
 

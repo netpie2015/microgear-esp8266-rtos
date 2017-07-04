@@ -56,7 +56,7 @@ struct {
 
 uint32_t getServerTime();
 int getOAuthToken(Token*,char*,char*,char*,char*,char*);
-int getAccessToken(Token*,char*,char*,char*,char*);
-int revokeToken(Token*);
+int getAccessToken(Token*,char*,char*,char*,char*,uint8_t);
+int callRevokeTokenAPI(Token*);
 
 #endif
