@@ -22,9 +22,9 @@ GEN_IMAGES= eagle.app.v6.out
 GEN_BINS= eagle.app.v6.bin
 SPECIAL_MKTARGETS=$(APP_MKTARGETS)
 SUBDIRS=       \
-	user       \
+    user       \
     lib        \
-	Microgear
+    Microgear
 
 
 endif # } PDIR
@@ -33,11 +33,11 @@ LDDIR = $(SDK_PATH)/ld
 
 CCFLAGS += -Os
 
-TARGET_LDFLAGS =		\
-	-nostdlib		\
-	-Wl,-EL \
-	--longcalls \
-	--text-section-literals
+TARGET_LDFLAGS =        \
+    -nostdlib        \
+    -Wl,-EL \
+    --longcalls \
+    --text-section-literals
 
 ifeq ($(FLAVOR),debug)
     TARGET_LDFLAGS += -g -O2
@@ -50,33 +50,33 @@ endif
 MODULES = Microgear
 
 COMPONENTS_eagle.app.v6 = \
-	user/libuser.a Microgear/libmicrogear.a Microgear/MQTTClient/libmqttclient.a lib/libmisc.a
+    user/libuser.a Microgear/libmicrogear.a Microgear/MQTTClient/libmqttclient.a lib/libmisc.a
 
 LINKFLAGS_eagle.app.v6 = \
-	-L$(SDK_PATH)/lib        \
-	-Wl,--gc-sections   \
-	-nostdlib	\
+    -L$(SDK_PATH)/lib        \
+    -Wl,--gc-sections   \
+    -nostdlib    \
     -T$(LD_FILE)   \
-	-Wl,--no-check-sections	\
-    -u call_user_start	\
-	-Wl,-static						\
-	-Wl,--start-group					\
-	-lminic \
-	-lgcc					\
-	-lhal					\
-	-lphy	\
-	-lpp	\
-	-lnet80211	\
-	-lwpa	\
-	-lcrypto    \
-	-lmain	\
-	-lfreertos	\
-	-llwip	\
-	-lespconn\
-	-lsmartconfig \
-	-lairkiss\
-	$(DEP_LIBS_eagle.app.v6)					\
-	-Wl,--end-group
+    -Wl,--no-check-sections    \
+    -u call_user_start    \
+    -Wl,-static                        \
+    -Wl,--start-group                    \
+    -lminic \
+    -lgcc                    \
+    -lhal                    \
+    -lphy    \
+    -lpp    \
+    -lnet80211    \
+    -lwpa    \
+    -lcrypto    \
+    -lmain    \
+    -lfreertos    \
+    -llwip    \
+    -lespconn\
+    -lsmartconfig \
+    -lairkiss\
+    $(DEP_LIBS_eagle.app.v6)                    \
+    -Wl,--end-group
 
 DEPENDS_eagle.app.v6 = \
                 $(LD_FILE) \
@@ -90,21 +90,21 @@ DEPENDS_eagle.app.v6 = \
 #   for a subtree within the makefile rooted therein
 #
 
-#UNIVERSAL_TARGET_DEFINES =		\
+#UNIVERSAL_TARGET_DEFINES =        \
 
 # Other potential configuration flags include:
-#	-DTXRX_TXBUF_DEBUG
-#	-DTXRX_RXBUF_DEBUG
-#	-DWLAN_CONFIG_CCX
-CONFIGURATION_DEFINES =	-DICACHE_FLASH
+#    -DTXRX_TXBUF_DEBUG
+#    -DTXRX_RXBUF_DEBUG
+#    -DWLAN_CONFIG_CCX
+CONFIGURATION_DEFINES =    -DICACHE_FLASH
 
-DEFINES +=				\
-	$(UNIVERSAL_TARGET_DEFINES)	\
-	$(CONFIGURATION_DEFINES)
+DEFINES +=                \
+    $(UNIVERSAL_TARGET_DEFINES)    \
+    $(CONFIGURATION_DEFINES)
 
-DDEFINES +=				\
-	$(UNIVERSAL_TARGET_DEFINES)	\
-	$(CONFIGURATION_DEFINES)
+DDEFINES +=                \
+    $(UNIVERSAL_TARGET_DEFINES)    \
+    $(CONFIGURATION_DEFINES)
 
 
 #############################################################
@@ -122,12 +122,9 @@ DDEFINES +=				\
 INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)Microgear
 sinclude $(SDK_PATH)/Makefile
 
-
-
 flash:
-	echo $(BIN_PATH)
-	esptool.py --port /dev/cu.wchusbserial1410 --baud 115200 write_flash 0x0 $(BIN_PATH)/eagle.flash.bin 0x20000 $(BIN_PATH)/eagle.irom0text.bin
+	esptool.py --port $(port) -b 115200 write_flash 0x0 $(BIN_PATH)/eagle.flash.bin 0x20000 $(BIN_PATH)/eagle.irom0text.bin
 
-.PHONY: FORCE	
+
+.PHONY: FORCE    
 FORCE:
-
