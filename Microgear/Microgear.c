@@ -112,10 +112,10 @@ void defaultMsgHandler(MessageData* md, void *c) {
     #ifdef DEBUG
         os_printf("Received: ");
         for (i = 0; i < md->topic->lenstring.len; ++i)
-            dmsg_putchar(md->topic->lenstring.data[i]);
+            os_printf("%c",md->topic->lenstring.data[i]);
         os_printf(" = ");
         for (i = 0; i < (int)message->payloadlen; ++i)
-            dmsg_putchar(((char*)message->payload)[i]);
+            os_printf("%c",((char*)message->payload)[i]);
         os_printf("\r\n");
     #endif
 
@@ -380,7 +380,7 @@ void microgear_task(void *pvParameters) {
         }
         vTaskDelay(1000 / portTICK_RATE_MS);
     }
-    dmsg_printf("MQTT task ended\r\n", ret);
+    os_printf("MQTT task ended\r\n", ret);
     mg->mqtttask == NULL;
     vTaskDelete(NULL);
 }

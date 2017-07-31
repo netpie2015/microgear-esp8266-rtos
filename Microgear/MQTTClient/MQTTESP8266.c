@@ -20,7 +20,6 @@
   */
   
 #include "esp_common.h"
-#include "dmsg.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/portmacro.h"
 #include "lwip/sockets.h"
