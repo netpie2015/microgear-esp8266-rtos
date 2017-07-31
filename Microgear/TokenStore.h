@@ -7,11 +7,11 @@
 
 #define TOKEN_FLASH_SEC            0x100
 
-#define KEYSIZE 				 16
-#define TOKENSIZE                16
-#define TOKENSECRETSIZE          32
-#define ENDPOINTSIZE             200
-#define REVOKECODESIZE           28
+#define KEYSIZE                    16
+#define TOKENSIZE                  16
+#define TOKENSECRETSIZE            32
+#define ENDPOINTSIZE               200
+#define REVOKECODESIZE             28
 
 struct token_struct{
     char type;

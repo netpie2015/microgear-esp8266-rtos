@@ -1,4 +1,3 @@
-#include "uart.h"
 #include "WifiController.h"
 #include "Microgear.h"
 
@@ -35,14 +34,14 @@ void onMsghandler(char *topic, uint8_t* msg, uint16_t msglen) {
     uint16_t i;
     os_printf("incoming message --> %s : ",topic);
     for (i=0;i<msglen;i++) {
-        dmsg_putchar((char)(msg[i]));
+        os_printf("%c",(char)(msg[i]));
     }
     os_printf("\n");    
 }
 
 LOCAL void loop_task(void *pvParameters) {
     while(1) {
-        if (microgear_isconnected(&mg)) {
+        if (microgear_isConnected(&mg)) {
            os_printf("published\n");
            microgear_publish(&mg,"/test","Hello", NULL);
         }
@@ -54,7 +53,8 @@ LOCAL void loop_task(void *pvParameters) {
 }
 
 void ICACHE_FLASH_ATTR user_init(void) {
-    UART_SetBaudrate(UART0, 115200);
+    // set UART0 buadrate to be 115200
+    uart_div_modify(0, UART_CLK_FREQ / 115200); 
 
     startWifi(&wificonfig);
 
