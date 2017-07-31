@@ -23,7 +23,6 @@ GEN_BINS= eagle.app.v6.bin
 SPECIAL_MKTARGETS=$(APP_MKTARGETS)
 SUBDIRS=       \
     user       \
-    lib        \
     Microgear
 
 
@@ -50,7 +49,7 @@ endif
 MODULES = Microgear
 
 COMPONENTS_eagle.app.v6 = \
-    user/libuser.a Microgear/libmicrogear.a Microgear/MQTTClient/libmqttclient.a lib/libmisc.a
+    user/libuser.a Microgear/libmicrogear.a Microgear/MQTTClient/libmqttclient.a
 
 LINKFLAGS_eagle.app.v6 = \
     -L$(SDK_PATH)/lib        \
