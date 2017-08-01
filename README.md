@@ -4,16 +4,15 @@ NETPIE client library for ESP8266 RTOS SDK.
 
 ## Compatibility
 
-We have tested this library and found it compatible with (but not limited to) the following hardware
-- ESP8266-01, 07, 12E, 12F
-- NodeMCU v1, v2, V3
-- Espresso Lite v2.0
+The library should work with all ESP8266 modules.
 
 ## Outgoing Network Port
 
-Make sure ther following ports are allowed to connect from your network.
-- Non-TLS mode : 8080 and 1883 (the library uses this mode by default)
-- TLS mode : 8081 and 8883 (still under testing)
+Make sure ports 8080 and 1883 are allowed to connect from your network.
+
+## Limitations
+
+TLS is currently not supported. For the current status please check out mbedtls branch.
 
 **Usage Example**
 
