@@ -12,8 +12,8 @@
 #     a generated lib/image xxx.a ()
 #
 TARGET = eagle
-#FLAVOR = release
 FLAVOR = debug
+#FLAVOR = release
 
 #EXTRA_CCFLAGS += -u
 
@@ -23,7 +23,7 @@ GEN_BINS= eagle.app.v6.bin
 SPECIAL_MKTARGETS=$(APP_MKTARGETS)
 SUBDIRS=       \
     user       \
-    Microgear
+    lib        
 
 
 endif # } PDIR
@@ -46,23 +46,21 @@ ifeq ($(FLAVOR),release)
     TARGET_LDFLAGS += -g -O0
 endif
 
-MODULES = Microgear
-
 COMPONENTS_eagle.app.v6 = \
-    user/libuser.a Microgear/libmicrogear.a Microgear/MQTTClient/libmqttclient.a
+    user/libuser.a lib/Microgear/libmicrogear.a lib/Microgear/MQTTClient/libmqttclient.a
 
-LINKFLAGS_eagle.app.v6 = \
-    -L$(SDK_PATH)/lib        \
+LINKFLAGS_eagle.app.v6 =  \
+    -L$(SDK_PATH)/lib  \
     -Wl,--gc-sections   \
     -nostdlib    \
     -T$(LD_FILE)   \
     -Wl,--no-check-sections    \
     -u call_user_start    \
-    -Wl,-static                        \
-    -Wl,--start-group                    \
-    -lminic \
-    -lgcc                    \
-    -lhal                    \
+    -Wl,-static    \
+    -Wl,--start-group  \
+    -lminic  \
+    -lgcc    \
+    -lhal    \
     -lphy    \
     -lpp    \
     -lnet80211    \
@@ -105,7 +103,6 @@ DDEFINES +=                \
     $(UNIVERSAL_TARGET_DEFINES)    \
     $(CONFIGURATION_DEFINES)
 
-
 #############################################################
 # Recursion Magic - Don't touch this!!
 #
@@ -118,12 +115,11 @@ DDEFINES +=                \
 # Required for each makefile to inherit from the parent
 #
 
-INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)Microgear
+INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)lib/Microgear
 sinclude $(SDK_PATH)/Makefile
 
 flash:
 	esptool.py --port $(port) -b 115200 write_flash 0x0 $(BIN_PATH)/eagle.flash.bin 0x20000 $(BIN_PATH)/eagle.irom0text.bin
-
 
 .PHONY: FORCE    
 FORCE:
