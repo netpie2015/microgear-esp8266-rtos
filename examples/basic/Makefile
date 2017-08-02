@@ -18,12 +18,13 @@ FLAVOR = debug
 #EXTRA_CCFLAGS += -u
 
 ifndef PDIR # {
+GEN_LIBS = libuser.a
 GEN_IMAGES= eagle.app.v6.out
 GEN_BINS= eagle.app.v6.bin
 SPECIAL_MKTARGETS=$(APP_MKTARGETS)
 SUBDIRS=       \
-    user       \
-    lib        
+    ../../user       \
+    ../../lib        
 
 
 endif # } PDIR
@@ -47,9 +48,9 @@ ifeq ($(FLAVOR),release)
 endif
 
 COMPONENTS_eagle.app.v6 = \
-    user/libuser.a   \
-    lib/Microgear/libmicrogear.a   \
-    lib/Microgear/MQTTClient/libmqttclient.a   \
+    libuser.a   \
+    ../../lib/Microgear/libmicrogear.a   \
+    ../../lib/Microgear/MQTTClient/libmqttclient.a   \
 
 LINKFLAGS_eagle.app.v6 =  \
     -Llib/mbedtls      \
@@ -118,7 +119,7 @@ DDEFINES +=                \
 # Required for each makefile to inherit from the parent
 #
 
-INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)lib/Microgear -I $(PDIR)lib
+INCLUDES := $(INCLUDES) -I $(PDIR)../../include -I $(PDIR)../../lib/Microgear -I $(PDIR)../../lib
 sinclude $(SDK_PATH)/Makefile
 
 flash:
