@@ -119,6 +119,7 @@ bool microgear_isConnected(Microgear *);
 
 int microgear_setAlias(Microgear*, char*);
 int microgear_publish(Microgear*, char*, char*, PubOpt*);
+int microgear_writeFeed(Microgear*, char*, char*, char*);
 int microgear_chat(Microgear*, char*, char*);
 int microgear_subscribe(Microgear*, char*);
 int microgear_unsubscribe(Microgear*, char*);

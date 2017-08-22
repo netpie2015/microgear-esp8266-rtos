@@ -1,6 +1,8 @@
 #include "Microgear.h"
 
 extern xSemaphoreHandle wifi_semaphore;
+void microgear_task(void*);
+
 PubOpt DefaultPubOpt = {false};
 static uint8_t mgcount = 0;
 
@@ -102,6 +104,16 @@ int microgear_publish(Microgear *mg, char *topic, char *payload, PubOpt *opt) {
         #endif
         return 0;
     }
+}
+
+int microgear_writeFeed(Microgear *mg, char *feedid, char *data, char *apikey) {
+    char *p;
+    char buff[PUBSUBQUEUE_TOPICSIZE+1];
+
+    memset(buff, 0, PUBSUBQUEUE_TOPICSIZE+1);
+    p = addattr(buff, "/@writefeed/", feedid);
+    if (apikey) addattr(p, "/", apikey);
+    microgear_publish(mg, buff, data, NULL);
 }
 
 // Callback when receiving control message
@@ -214,6 +226,57 @@ int ICACHE_FLASH_ATTR microgear_unsubscribe(Microgear *mg, char *topic) {
             os_printf("Subscribe Success.\r\n");
         #endif
         return 0;
+    }
+}
+
+bool ICACHE_FLASH_ATTR microgear_isConnected(Microgear *mg) {
+    return mg->client.isconnected;
+}
+
+void ICACHE_FLASH_ATTR microgear_connect(Microgear *mg, char* appid) {
+    if (mg->mqtttask == NULL) {
+        mg->appid = appid;
+        xTaskCreate(microgear_task, "microgear", 1024, mg, tskIDLE_PRIORITY + 2, &mg->mqtttask);
+    }
+}
+
+void ICACHE_FLASH_ATTR microgear_disconnect(Microgear *mg) {
+    PubSubQueueMsg data;
+    data.type = PSQ_DISCONNECT;
+    xQueueSend(mg->ps_queue, (void *)(&data), 0);
+    mg->mqtttask = NULL;
+}
+
+void ICACHE_FLASH_ATTR microgear_on(Microgear *mg, unsigned char event, void (* callback)(char*, uint8_t*,uint16_t)) {
+    switch (event) {
+        case MESSAGE : 
+                if (callback) mg->cb_message = callback;
+                break;
+        case PRESENT : 
+                if (callback) mg->cb_present = callback;
+                if (microgear_isConnected(mg))
+                    microgear_subscribe(mg,"/&present");
+                break;
+        case ABSENT : 
+                if (callback) mg->cb_absent = callback;
+                if (microgear_isConnected(mg))
+                    microgear_subscribe(mg,"/&absent");
+                break;
+        case CONNECTED :
+                if (callback) {
+                    mg->cb_connected = callback;
+                }
+                break;
+        case ERROR :
+                if (callback) {
+                    mg->cb_error = callback;
+                }
+                break;
+        case INFO :
+                if (callback) {
+                    mg->cb_info = callback;
+                }
+                break;
     }
 }
 
@@ -383,55 +446,4 @@ void microgear_task(void *pvParameters) {
     os_printf("MQTT task ended\r\n", ret);
     mg->mqtttask == NULL;
     vTaskDelete(NULL);
-}
-
-bool ICACHE_FLASH_ATTR microgear_isConnected(Microgear *mg) {
-    return mg->client.isconnected;
-}
-
-void ICACHE_FLASH_ATTR microgear_connect(Microgear *mg, char* appid) {
-    if (mg->mqtttask == NULL) {
-        mg->appid = appid;
-        xTaskCreate(microgear_task, "microgear", 1024, mg, tskIDLE_PRIORITY + 2, &mg->mqtttask);
-    }
-}
-
-void ICACHE_FLASH_ATTR microgear_disconnect(Microgear *mg) {
-    PubSubQueueMsg data;
-    data.type = PSQ_DISCONNECT;
-    xQueueSend(mg->ps_queue, (void *)(&data), 0);
-    mg->mqtttask = NULL;
-}
-
-void ICACHE_FLASH_ATTR microgear_on(Microgear *mg, unsigned char event, void (* callback)(char*, uint8_t*,uint16_t)) {
-    switch (event) {
-        case MESSAGE : 
-                if (callback) mg->cb_message = callback;
-                break;
-        case PRESENT : 
-                if (callback) mg->cb_present = callback;
-                if (microgear_isConnected(mg))
-                    microgear_subscribe(mg,"/&present");
-                break;
-        case ABSENT : 
-                if (callback) mg->cb_absent = callback;
-                if (microgear_isConnected(mg))
-                    microgear_subscribe(mg,"/&absent");
-                break;
-        case CONNECTED :
-                if (callback) {
-                    mg->cb_connected = callback;
-                }
-                break;
-        case ERROR :
-                if (callback) {
-                    mg->cb_error = callback;
-                }
-                break;
-        case INFO :
-                if (callback) {
-                    mg->cb_info = callback;
-                }
-                break;
-    }
 }
