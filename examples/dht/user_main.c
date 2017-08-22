@@ -1,7 +1,6 @@
-//#include "uart.h"
 #include "WifiController.h"
 #include "Microgear.h"
-#include "DHT.h"
+#include "dht.h"
 
 #define STA_SSID      <WIFI_SSID>
 #define STA_PASSWORD  <WIFI_PASSWORD>

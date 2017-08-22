@@ -1,4 +1,4 @@
-#include "DHT.h"
+#include "dht.h"
 
 #define DHT_TIMER_INTERVAL 2
 #define DHT_DATA_BITS 40
