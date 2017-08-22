@@ -48,7 +48,6 @@ void ICACHE_FLASH_ATTR user_init(void) {
 
     microgear_init(&mg, KEY, SECRET, ALIAS);
     microgear_on(&mg, CONNECTED, onConnected);
-    microgear_on(&mg, MESSAGE, onMsghandler);
 
     microgear_connect(&mg, APPID);
 
