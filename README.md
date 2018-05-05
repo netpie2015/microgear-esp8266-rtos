@@ -98,8 +98,7 @@ void ICACHE_FLASH_ATTR user_init(void) {
 On the recent version of SDK, you will find the error message regarding missing function user_rf_cal_sector_set(). To fix it just add this code in your project
 
 ```
-uint32 ICACHE_FLASH_ATTR
-user_rf_cal_sector_set(void) {
+uint32 ICACHE_FLASH_ATTR user_rf_cal_sector_set(void) {
     flash_size_map size_map = system_get_flash_size_map();
     uint32 rf_cal_sec = 0;
 
