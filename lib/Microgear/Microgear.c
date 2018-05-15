@@ -312,7 +312,7 @@ void microgear_task(void *pvParameters) {
         }
         xSemaphoreTake(wifi_semaphore, portMAX_DELAY);
 
-        if (mg->token  == NULL) {
+        if (mg->token == NULL) {
             if (!getAccessToken(&token, mg->appid, mg->key, mg->secret, mg->alias, mg->id)) {
                 break;
             }
@@ -443,7 +443,7 @@ void microgear_task(void *pvParameters) {
         }
         vTaskDelay(1000 / portTICK_RATE_MS);
     }
-    os_printf("MQTT task ended\r\n", ret);
-    mg->mqtttask == NULL;
+    os_printf("MQTT task ended: %d\r\n", ret);
+    mg->mqtttask = NULL;
     vTaskDelete(NULL);
 }
