@@ -6,4 +6,6 @@
 #define PUBSUBQUEUE_PAYLOADSIZE    256
 #define PUBSUBQUEUE_LENGTH          3
 
+#define TLS
+
 #endif

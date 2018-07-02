@@ -16,6 +16,11 @@
 #include "ESPTime.h"
 #include "TokenStore.h"
 
+#ifdef TLS
+#include "sslcon.h"
+#endif
+#include "sock.h"
+
 #define REQUESTTOKEN					1
 #define ACCESSTOKEN						2
 
@@ -34,6 +39,7 @@
 
 #define AUTH_ADDRESS 			        "ga.netpie.io"
 #define AUTH_PORT				        "8080"
+#define SECURE_AUTH_PORT				8081
 #define AUTH_REQUEST_TOKEN_URI          "/api/rtoken"
 #define AUTH_ACCESS_TOKEN_URI           "/api/atoken"
 

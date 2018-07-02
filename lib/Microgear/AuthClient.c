@@ -88,7 +88,7 @@ int ICACHE_FLASH_ATTR getAccessToken(Token *token, char* appid, char* key, char*
     #endif
 
     if (memcmp(token->key, key, KEYSIZE)!=0) {
-        callRevokeTokenAPI(token);
+        //callRevokeTokenAPI(token);
         token->type = 0;
     }
 
@@ -119,7 +119,8 @@ int ICACHE_FLASH_ATTR getAccessToken(Token *token, char* appid, char* key, char*
     }
 }
 
-int ICACHE_FLASH_ATTR connectAuthServer() {
+SOCKCLIENT ICACHE_FLASH_ATTR connectAuthServer() {
+#ifndef TLS
     const struct addrinfo hints = {
         .ai_family = AF_INET,
         .ai_socktype = SOCK_STREAM,
@@ -127,20 +128,48 @@ int ICACHE_FLASH_ATTR connectAuthServer() {
     struct addrinfo *res;
     int err = getaddrinfo(AUTH_ADDRESS, AUTH_PORT, &hints, &res);
     struct in_addr *addr = &((struct sockaddr_in *)res->ai_addr)->sin_addr;
-    int client = socket(res->ai_family, res->ai_socktype, 0);
+    SOCKCLIENT client = socket(res->ai_family, res->ai_socktype, 0);
     if(connect(client, res->ai_addr, res->ai_addrlen) == 0) return client;
-    else return -1;
+    else return NULLSOCKET;
+#else
+    SSLConnection* ssl_conn = NULLSOCKET;
+    int ret = 0;
+    ssl_conn = (SSLConnection *) malloc(sizeof(SSLConnection));
+    ssl_init(ssl_conn);
+    
+    // ssl_conn->ca_cert_str = ca_cert;
+    // ssl_conn->client_cert_str = client_cert;
+    // ssl_conn->client_key_str = client_key;
+
+    ret = ssl_connect(ssl_conn, AUTH_ADDRESS, SECURE_AUTH_PORT);
+    if (ret) {
+        ssl_destroy(ssl_conn);
+        free(ssl_conn);
+        return NULLSOCKET;
+    }
+    else return ssl_conn;
+#endif
+}
+
+void ICACHE_FLASH_ATTR closeAuthServer(SOCKCLIENT client) {
+    if (client != NULLSOCKET) {
+        closeAuthServer(client);
+        #ifdef TLS
+            free(client);
+        #endif
+        client = NULLSOCKET;
+    }
 }
 
 // Read http client socket, set buff as a body, return http status
-int ICACHE_FLASH_ATTR getHTTPResponse(int client, char *buff) {
+int ICACHE_FLASH_ATTR getHTTPResponse(SOCKCLIENT client, char *buff) {
     int r, clen = -1;
     int httpstatus = -1;
     char *h, *p, *t;
     char header = 1;
 
     t = buff;
-    while ((r = read(client , t, READ_CHUNK_SIZE)) > 0) {
+    while ((r = sockread(client , t, READ_CHUNK_SIZE, 0)) > 0) {
         h = p = buff;
         t += r;
         *t = 0;
@@ -169,6 +198,7 @@ int ICACHE_FLASH_ATTR getHTTPResponse(int client, char *buff) {
             t = buff+(t-h);
         }
     }
+    os_printf("r = %d \n\n",r);
     if (clen >= 0) *(buff+clen)=0;
     return httpstatus;
 }
@@ -176,15 +206,15 @@ int ICACHE_FLASH_ATTR getHTTPResponse(int client, char *buff) {
 uint32_t ICACHE_FLASH_ATTR getServerTime() {
     #define REQUESTCMD "GET /api/time HTTP/1.1\r\nConnection: close\r\n\r\n"
     char* buff;
-    int tmclient;
+    SOCKCLIENT tmclient;
     uint32_t time = 0;
 
-    if ((tmclient = connectAuthServer()) >= 0) {
+    if ((tmclient = connectAuthServer()) != NULLSOCKET) {
         buff = (char *)malloc(HTTP_BUFFER_SIZE);
         memset(buff, 0, HTTP_BUFFER_SIZE);
 
-        if (write(tmclient, REQUESTCMD, STRLEN(REQUESTCMD)) < 0) {
-            close(tmclient);
+        if (sockwrite(tmclient, REQUESTCMD, STRLEN(REQUESTCMD), 0) < 0) {
+            closeAuthServer(tmclient);
             return 0;
         }
         memset(buff, 0, strlen(buff));
@@ -193,15 +223,15 @@ uint32_t ICACHE_FLASH_ATTR getServerTime() {
         }
         free(buff);
     }
-    close(tmclient);
+    closeAuthServer(tmclient);
     return time;
 }
 
 int ICACHE_FLASH_ATTR getOAuthToken(Token *token, char* appid, char* key, char* secret, char* alias, char* uri) {
-    int authclient;
+    SOCKCLIENT authclient;
     char *buff;
 
-    if ((authclient = connectAuthServer()) >= 0) {
+    if ((authclient = connectAuthServer()) != NULLSOCKET) {
         char *p, *r;
         char rep[3];
         char hashkey[HASKKEYSIZE+1];
@@ -224,9 +254,9 @@ int ICACHE_FLASH_ATTR getOAuthToken(Token *token, char* appid, char* key, char* 
         }
         p = addattr(p, "\",oauth_version=\"1.0\"",NULL);
 
-        if (write(authclient, buff, strlen(buff)) < 0) {
+        if (sockwrite(authclient, buff, strlen(buff), 0) < 0) {
             printf("... socket send failed\r\n");
-            close(authclient);
+            closeAuthServer(authclient);
             free(buff);
             return 0;
         }
@@ -307,20 +337,20 @@ int ICACHE_FLASH_ATTR getOAuthToken(Token *token, char* appid, char* key, char* 
             os_printf("oauth_signature = %s\n",buff+18);
         #endif
 
-        write(authclient, buff, strlen(buff));
+        sockwrite(authclient, buff, strlen(buff), 0);
         memset(buff, 0, HTTP_BUFFER_SIZE);
         p = addattr(buff, "Host: ", AUTH_ADDRESS);
         p = addattr(p, ":", AUTH_PORT);
         p = addattr(p, "\r\nConnection: close\r\nUser-Agent: E8R\r\n\r\n", NULL);
-        if (write(authclient, buff, strlen(buff)) < 0) {
+        if (sockwrite(authclient, buff, strlen(buff), 0) < 0) {
             printf("... socket send failed\r\n");
-            close(authclient);
+            closeAuthServer(authclient);
             free(buff);
             return 0;
         }
     }
     else {
-        close(authclient);
+        closeAuthServer(authclient);
     }
 
     char *h, *p, *t;
@@ -393,32 +423,35 @@ int ICACHE_FLASH_ATTR getOAuthToken(Token *token, char* appid, char* key, char* 
     #endif
 
     free(buff);
-    close(authclient);
+    closeAuthServer(authclient);
     return 1;
 }
 
 int ICACHE_FLASH_ATTR callRevokeTokenAPI(Token* token) {
     char* buff;
-    int client;
+    SOCKCLIENT client;
     int success = 0;
 
-    if ((client = connectAuthServer()) >= 0) {
+    if ((client = connectAuthServer()) != NULLSOCKET) {
         buff = (char *)malloc(HTTP_BUFFER_SIZE);
         memset(buff, 0, HTTP_BUFFER_SIZE);
         memcpy(buff,"GET /api/revoke/",16);
         addattr(buff+16, token->token, "/");
         addattr(tail(buff), token->revokecode, " HTTP/1.1\r\nConnection: close\r\n\r\n");
-        if (write(client, buff, strlen(buff)) < 0) {
+        if (sockwrite(client, buff, strlen(buff), 0) < 0) {
             free(buff);
-            close(client);
+            closeAuthServer(client);
             return 0;
         }
         memset(buff, 0, strlen(buff));
+        os_printf("1>>>>");
         if (getHTTPResponse(client, buff) == 200) {
+        os_printf("2>>>>");
             success = (memcmp("FAILED", buff, 6)!=0);
         }
+        os_printf("3>>>>");
         free(buff);
     }
-    close(client);
+    closeAuthServer(client);
     return success;
 }
